@@ -16,9 +16,9 @@ from scipy.fft import fft, fftfreq
 from vtk_export import vtk_export
 import tempfile
 #creates new folder for animation if it doesn't already exist
-if not os.path.exists('3dplot'):
+if not os.path.exists('ParticlePlots'):
         
-     os.mkdir('3dplot')
+     os.mkdir('ParticlePlots')
 #main functions 
 
     
@@ -186,6 +186,7 @@ def main(x0,y0,z0,Vx0,Vy0,Vz0):
         plt.title('Energy vs Time')
         plt.xlabel('Time(s)')
         plt.ylabel('Ratio of T/T0')
+        plt.savefig('ParticlePlots/Energy.png' ,format = 'png')
         
         #velocity plots
         #x,y,z
@@ -197,6 +198,7 @@ def main(x0,y0,z0,Vx0,Vy0,Vz0):
         plt.title('Cartesian Velocity')
         plt.xlabel('Time(s)')
         plt.ylabel('Velocity (m/s)')
+        plt.savefig('ParticlePlots/CartesianVelocity.png' ,format = 'png')
         
         #V, Vparr,Vperp
         plt.figure(3)
@@ -208,7 +210,7 @@ def main(x0,y0,z0,Vx0,Vy0,Vz0):
         plt.xlabel('Time(s)')
         plt.ylabel('Velocity (m/s)')
         #plt.ylim(0,1.2)
-        
+        plt.savefig('ParticlePlots/Parallel-Perpendicular Velocity.png' ,format = 'png')
         
         #postion
         plt.figure(4)
@@ -219,6 +221,7 @@ def main(x0,y0,z0,Vx0,Vy0,Vz0):
         plt.title('Position in Cartesian')
         plt.xlabel('Time(s)')
         plt.ylabel('Distance (m)')
+        plt.savefig('ParticlePlots/Cartesian position.png' ,format = 'png')
         
         
         plt.figure(5)
@@ -229,15 +232,15 @@ def main(x0,y0,z0,Vx0,Vy0,Vz0):
         plt.title('L-Shell Coords')
         plt.xlabel('Time(s)')
         plt.ylabel('Radial Distance (m)')
+        plt.savefig('ParticlePlots/L-shell.png' ,format = 'png')
         
         #xy plot
         plt.figure(6)
         plt.plot(soln.y[0],soln.y[1])
-       
         plt.title('XY position')
         plt.xlabel('X (m)')
         plt.ylabel('Y (m)')
-        
+        plt.savefig('ParticlePlots/XvsY.png' ,format = 'png')
         plt.show()
         
     '''
@@ -427,13 +430,13 @@ def particle_demo(L_shell = 4 ,
                  longitude = 0 , 
                  pitch = 90 ,
                  phase = 0 ,
-                 Kinetic_energy = 2 , # in eV
+                 Kinetic_energy = 2 , # in eV/kg
                  mass = 1e-19 , #in Kg
                  charge = 5e-18 , # in coulumbs
                  t = 100, #time in seconds
                  dt = .001,
-                 plots = False):
-#def particle_demo(L_shell,latitude ,longitude ,pitch ,phase ,Kinetic_energy,mass,charge,t,dt):
+                 plots = True):
+#def particle_demo(L_shell,latitude ,longitude ,pitch ,phase ,Kinetic_energy/m,charge,t,dt):
     #convert all angles to degrees
     latitude = math.radians(latitude)
     longitude = math.radians(longitude)
@@ -446,7 +449,7 @@ def particle_demo(L_shell = 4 ,
     global Re
     Re = 1
     global m 
-    m = mass
+    m = 1e-19 #mass
     global t_runtime
     t_runtime = t
     global d_t
