@@ -186,7 +186,7 @@ def main(x0,y0,z0,Vx0,Vy0,Vz0):
         plt.plot(tc,T/T0)
         #plt.ylim(0,1.2)
         plt.legend(['Kinetic Energy'])
-        plt.title('Energy vs Time')
+        plt.title('Error in energy')
         plt.xlabel(timelabel)
         plt.ylabel('Ratio of T/T0')
         plt.savefig('ParticlePlots/Energy.png' ,format = 'png')
@@ -201,8 +201,8 @@ def main(x0,y0,z0,Vx0,Vy0,Vz0):
         plt.plot(tc, VtoT(soln.y[3]))
         plt.plot(tc, VtoT(soln.y[4]))
         plt.plot(tc, VtoT(soln.y[5]))
-        plt.legend(['Vx', 'Vy', 'Vz'])
-        plt.title('Error in energy')
+        plt.legend(['Tx', 'Ty', 'Tz'])
+        plt.title('')
         plt.xlabel(timelabel)
         plt.ylabel('Kinetic Energy (eV)')
         plt.savefig('ParticlePlots/CartesianVelocity.png' ,format = 'png')
@@ -255,11 +255,13 @@ def main(x0,y0,z0,Vx0,Vy0,Vz0):
         xpoints = soln.y[0]
         ypoints = soln.y[1]
         zpoints = soln.y[2]
-        fig = plt.figure(figsize=(16,19))
+        fig = plt.figure(figsize=(16,9))
+        
+    
         #ax1 = plt.subplot(3,3,1)
         #ax2 = plt.subplot(3,3,2)
         #ax3 = plt.subplot(3,3,3)
-        axf = plt.subplot(projection = '3d')
+        axf = plt.subplot(3,3,(1,9),projection = '3d')
         '''
         # Gráfica 1 #
         ax1.set_xlim(-1,53)
@@ -312,7 +314,7 @@ def main(x0,y0,z0,Vx0,Vy0,Vz0):
         
         
         def drawframe(n):
-            n = 10*n #why am I doing this instead of increasing dt? it's becasue this keeps line percision while allowing me to keep frame < 1000
+            n = 5*n #why am I doing this instead of increasing dt? it's becasue this keeps line percision while allowing me to keep frame < 1000
             x = xpoints[n]
             y = ypoints[n]
             z = zpoints[n]
@@ -335,10 +337,10 @@ def main(x0,y0,z0,Vx0,Vy0,Vz0):
         from matplotlib import animation
         
         
-        anim = animation.FuncAnimation(fig, drawframe, frames = 400, interval=1, blit=True) # run out of memory if frame number is too high < 1000?
+        anim = animation.FuncAnimation(fig, drawframe, frames = 800, interval=1, blit=True,  cache_frame_data = False) # run out of memory if frame number is too high < 1000?
         
         
-        anim.save('3ddipolemotion.mkv', writer='imagemagick',fps = 24)
+        anim.save('3ddipolemotion.mp4', writer='imagemagick',fps = 24) #.gifs are big, .webm is compressed and small, mkvs are medium and look nice with lower compatability 
         
         
     
@@ -448,12 +450,12 @@ def ctd2car(pitch, phase, Kinetic_energy, Lshell, latitude, longitude):
 def particle_demo(L_shell = 2 ,
                  latitude = 0, #all angles in degrees
                  longitude = 0 , 
-                 pitch = 80 ,
+                 pitch = 0  ,
                  phase = 0 ,
                  Kinetic_energy = 1 , # in eV/kg
                  mass = 1e-16 , #in Kg
                  charge = 5e-18 , # in coulumbs
-                 t = 5000, #time in seconds
+                 t = 10000, #time in seconds
                  dt = .5,
                  two2dplots = True,
                  three3dplots = True):
@@ -493,7 +495,7 @@ def particle_demo(L_shell = 2 ,
 
 
 
-
+#maybe run this a short with different inital conditions and names to save
 particle_demo()
 
 
