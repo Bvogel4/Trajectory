@@ -8,6 +8,7 @@ Created on Wed Oct  2 11:17:51 2019
 import numpy as np
 import math as math
 from matplotlib import pyplot as plt
+import matplotlib
 from scipy.integrate import solve_ivp
 from sklearn.preprocessing import normalize
 from mpl_toolkits import mplot3d
@@ -172,54 +173,60 @@ def main(x0,y0,z0,Vx0,Vy0,Vz0):
                     ftype=ftype,
                     debug = False)
     
-    if plot == True:
+    if twodplots == True:
         '''
         2D Plots:
         '''
-        
+        timelabel = 'Time (Tc)'
+        Tc = 2 *np.pi * m / (e*Bi)
+        tc = t/Tc
         #energy plot
         plt.clf()
         plt.figure(1)
-        plt.plot(t,T/T0)
+        plt.plot(tc,T/T0)
         #plt.ylim(0,1.2)
         plt.legend(['Kinetic Energy'])
         plt.title('Energy vs Time')
-        plt.xlabel('Time(s)')
+        plt.xlabel(timelabel)
         plt.ylabel('Ratio of T/T0')
         plt.savefig('ParticlePlots/Energy.png' ,format = 'png')
         
         #velocity plots
         #x,y,z
+        def VtoT(V): #output in ev
+            T = 1/2*m * V**2 * 6.241509e18
+            return T
+        
         plt.figure(2)
-        plt.plot(t, soln.y[3])
-        plt.plot(t, soln.y[4])
-        plt.plot(t, soln.y[5])
+        plt.plot(tc, VtoT(soln.y[3]))
+        plt.plot(tc, VtoT(soln.y[4]))
+        plt.plot(tc, VtoT(soln.y[5]))
         plt.legend(['Vx', 'Vy', 'Vz'])
-        plt.title('Cartesian Velocity')
-        plt.xlabel('Time(s)')
-        plt.ylabel('Velocity (m/s)')
+        plt.title('Error in energy')
+        plt.xlabel(timelabel)
+        plt.ylabel('Kinetic Energy (eV)')
         plt.savefig('ParticlePlots/CartesianVelocity.png' ,format = 'png')
         
         #V, Vparr,Vperp
         plt.figure(3)
         #plt.plot(t,V0/V) #test for magnitude of V after conversion to vparr and vperp
-        plt.plot(t, Vparrallel)
-        plt.plot(t, Vperpendicular)
-        plt.legend([ 'V parrallel', 'V perpendicular'])
-        plt.title('Parrallel and Perpendicular Velocity')
-        plt.xlabel('Time(s)')
-        plt.ylabel('Velocity (m/s)')
+        plt.plot(tc, VtoT(Vparrallel))
+        plt.plot(tc, VtoT(Vperpendicular))
+        plt.legend([ 'T parallel', 'T perpendicular'])
+        plt.title('Initial pitch angle = {0:.2f} degrees'.format(pitchangle) )
+        plt.xlabel(timelabel)
+        plt.ylabel('Energy (eV)')
         #plt.ylim(0,1.2)
         plt.savefig('ParticlePlots/Parallel-Perpendicular Velocity.png' ,format = 'png')
         
         #postion
         plt.figure(4)
-        plt.plot(t, soln.y[0])
-        plt.plot(t, soln.y[1])
-        plt.plot(t, soln.y[2])
+        plt.plot(tc, soln.y[0])
+        plt.plot(tc, soln.y[1])
+        plt.plot(tc, soln.y[2])
         plt.legend(['x','y','z'])
         plt.title('Position in Cartesian')
-        plt.xlabel('Time(s)')
+        plt.xlabel(timelabel)
         plt.ylabel('Distance (m)')
         plt.savefig('ParticlePlots/Cartesian position.png' ,format = 'png')
         
@@ -227,10 +234,10 @@ def main(x0,y0,z0,Vx0,Vy0,Vz0):
         plt.figure(5)
         #L-shell
         (L,o) = cartesiantoLshell(soln.y[0],soln.y[1],soln.y[2])
-        plt.plot(t,L)
+        plt.plot(tc,L)
         plt.legend([ 'L '])
         plt.title('L-Shell Coords')
-        plt.xlabel('Time(s)')
+        plt.xlabel(timelabel)
         plt.ylabel('Radial Distance (m)')
         plt.savefig('ParticlePlots/L-shell.png' ,format = 'png')
         
@@ -240,88 +247,101 @@ def main(x0,y0,z0,Vx0,Vy0,Vz0):
         plt.title('XY position')
         plt.xlabel('X (m)')
         plt.ylabel('Y (m)')
-        plt.savefig('ParticlePlots/XvsY.png' ,format = 'png')
+        plt.axes().set_aspect('equal', 'datalim')
+        plt.savefig('ParticlePlots/XvsY.png' ,format = 'png')        
         plt.show()
         
-    '''
-    #3d plot
-    ax = plt.axes(projection='3d')
+    if threedplots == True: # 3d animation
+        xpoints = soln.y[0]
+        ypoints = soln.y[1]
+        zpoints = soln.y[2]
+        fig = plt.figure(figsize=(16,19))
+        #ax1 = plt.subplot(3,3,1)
+        #ax2 = plt.subplot(3,3,2)
+        #ax3 = plt.subplot(3,3,3)
+        axf = plt.subplot(projection = '3d')
+        '''
+        # Gráfica 1 #
+        ax1.set_xlim(-1,53)
+        ax1.set_ylim(-17,22)
+        ax1.grid()
+        ax1.set_xlabel('Time')
+        ax1.set_ylabel('x(t)')
+        ax1.set_title('Graphical representation of x(t)')
+        
+        
+        # Gráfica 2 #
+        ax2.set_xlim(-1,53)
+        ax2.set_ylim(-22,30)
+        ax2.grid()
+        ax2.set_xlabel('Time')
+        ax2.set_ylabel('y(t)')
+        ax2.set_title('Graphical representation of y(t)')
+        
+        
+        # Gráfica 3 #
+        ax3.set_xlim(-1,53)
+        ax3.set_ylim(-2,51)
+        ax3.grid()
+        ax3.set_xlabel('Time')
+        ax3.set_ylabel('z(t)')
+        ax3.set_title('Graphical representation of z(t)')
+        '''
+        # Gráfica final #
+        axf.set_xlim(-2,2)
+        axf.set_ylim(-2,2)
+        axf.set_zlim(-2,2)
+        axf.grid()
+        axf.set_xlabel('x(m)')
+        axf.set_ylabel('y(m)')
+        axf.set_zlabel('z(m)')
+        
+        txt_title = axf.set_title('')
+        '''
+        line1, = ax1.plot([],[],'-r', lw = 2)
+        pt1, = ax1.plot([],[],'.k',ms = 20)
+        line2, = ax2.plot([],[],'-g', lw = 2)
+        pt2, = ax2.plot([],[],'.k', ms = 20)
+        pt3, = ax3.plot([],[],'.k', ms = 20)
+        line3, = ax3.plot([],[],'-m',lw = 2)
+        '''
+        linef, = axf.plot3D([],[],[],'-b',lw = 1)
+        ptf, = axf.plot3D([],[],[],'.k', ms = 20)
+        #tpoints = np.linspace(0,50,10000)
+        tpoints = t
+        
+        
+        def drawframe(n):
+            n = 10*n #why am I doing this instead of increasing dt? it's becasue this keeps line percision while allowing me to keep frame < 1000
+            x = xpoints[n]
+            y = ypoints[n]
+            z = zpoints[n]
+            t = tpoints[n]
+            txt_title.set_text('Initial pitch angle = {0:.2f} degrees'.format(pitchangle))
+            linef.set_data_3d(xpoints[0:n],ypoints[0:n],zpoints[0:n])
+            ptf.set_data_3d(x,y,z)
+            '''
+            line1.set_data(tpoints[0:n],xpoints[0:n])
+            pt1.set_data(t,x)
+            line2.set_data(tpoints[0:n],ypoints[0:n])
+            pt2.set_data(t,y)
+            line3.set_data(tpoints[0:n],zpoints[0:n])
+            pt3.set_data(t,z)
+            '''
+            angle = (360/10000)*n+45 
+            axf.view_init(30, angle)
+            return (linef,ptf)
+        
+        from matplotlib import animation
+        
+        
+        anim = animation.FuncAnimation(fig, drawframe, frames = 400, interval=1, blit=True) # run out of memory if frame number is too high < 1000?
+        
+        
+        anim.save('3ddipolemotion.mkv', writer='imagemagick',fps = 24)
+        
+        
     
-    # Data for a three-dimensional line 
-   
-    #ax.plot3D(xline, yline, zline)
-    u, v = np.mgrid[0:2*np.pi:20j, 0:np.pi:10j]
-    x = 10*np.cos(u)*np.sin(v)
-    y = 10*np.sin(u)*np.sin(v)
-    z = 10*np.cos(v)
-    ax.plot_surface(x, y, z, color="r", alpha = .3)
-    plt.title('3D plot')
-    '''
- 
-    
-    
-    '''
-    #export to csv
-    export = np.array( [[t_eval], [xline], [yline],[zline]])
-    #print(export)
-    export_reshaped = np.transpose(export.reshape(export.shape[0], -1))
-    #print(export_reshaped)
-    np.savetxt('file.csv',export_reshaped,delimiter='.')
-    '''
-    
-    
-    #animation maker
-    '''
-    start = 0
-    stop = 500
-    #add multithreading here
-    for i in range(start,stop): #bottleneck in this loop
-       
-        xdata = xline[i]
-        ydata = yline[i]
-        zdata = zline[i]
-        ax.scatter3D(xdata, ydata, zdata, c=zdata, marker ='.' );
-              
-        plt.savefig('3dplot/file_{0:03d}.png'.format(i),dpi = 600)
-        plt.clf()
-        ax = plt.axes(projection='3d')
-        ax.plot_surface(x, y, z, color="r", alpha = .3)
-        plt.title('3D plot')
-    #gif maker 
-    import imageio
-    images = []
-    for i in range(start,stop): #this one doesn't take long
-        images.append(imageio.imread('3dplot/file_{0:03d}.png'.format(i)))
-    imageio.mimsave('3dplot/movie.gif', images)
-    '''
-    '''
-    # foruier anaylis of x
-    
-    #wx = fft(soln.y[0])
-    
-    # Number of samplepoints
-    f_s = 1/dt
-    t = t
-    x = soln.y[0]
-    
-    fig, ax = plt.subplots()
-    ax.plot(t, x)
-    ax.set_xlabel('Time [s]')
-    ax.set_ylabel('Signal amplitude');
-    
-    from scipy import fftpack
-    
-    X = fftpack.fft(x)
-    freqs = fftpack.fftfreq(len(x)) * f_s
-    
-    fig, ax = plt.subplots()
-    
-    ax.loglog(freqs, np.abs(X),)
-    ax.set_xlabel('Frequency in Hertz [Hz]')
-    ax.set_ylabel('Frequency Domain (Spectrum) Magnitude')
-    ax.set_xlim(0, 1)
-    #ax.set_ylim(0, 10000)
-    '''
   #trajectory- (x,y,z)=(%.1f,%.1f,%.1f); (vx,vy,vz)=(%.1f,%.1f,%.1f) GSM
 
 #convert intital conditions to pitch angle, azimuth angle(phase?) magnetic moment and energy
@@ -425,42 +445,50 @@ def ctd2car(pitch, phase, Kinetic_energy, Lshell, latitude, longitude):
     return x, y, z, Vx, Vy, Vz
 
 
-def particle_demo(L_shell = 4 ,
+def particle_demo(L_shell = 2 ,
                  latitude = 0, #all angles in degrees
                  longitude = 0 , 
-                 pitch = 90 ,
+                 pitch = 80 ,
                  phase = 0 ,
-                 Kinetic_energy = 2 , # in eV/kg
-                 mass = 1e-19 , #in Kg
+                 Kinetic_energy = 1 , # in eV/kg
+                 mass = 1e-16 , #in Kg
                  charge = 5e-18 , # in coulumbs
-                 t = 100, #time in seconds
-                 dt = .001,
-                 plots = True):
+                 t = 5000, #time in seconds
+                 dt = .5,
+                 two2dplots = True,
+                 three3dplots = True):
 #def particle_demo(L_shell,latitude ,longitude ,pitch ,phase ,Kinetic_energy/m,charge,t,dt):
     #convert all angles to degrees
+    global pitchangle
+    pitchangle = pitch
     latitude = math.radians(latitude)
     longitude = math.radians(longitude)
     pitch = math.radians(pitch)
     phase = math.radians(phase)
     
-    global plot
-    plot = plots
+    global twodplots
+    twodplots = two2dplots
     
+    global threedplots
+    threedplots = three3dplots
     global Re
     Re = 1
     global m 
-    m = 1e-19 #mass
+    m = mass #mass
     global t_runtime
     t_runtime = t
     global d_t
     d_t = dt
     global e
-   
+    
     e = charge
-    Kinetic_energy = Kinetic_energy * 1.60218e-19
+    Kinetic_energy = Kinetic_energy * 1.602176565e-19
     
     x,y,z,Vx,Vy,Vz = ctd2car(pitch, phase, Kinetic_energy, L_shell, latitude, longitude)
     
+    global Bi 
+    Bix,Biy,Biz = B(x,y,z)
+    Bi = np.sqrt(Bix**2 + Biy**2 + Biz**2)
     main(x,y,z,Vx,Vy,Vz)
 
 
@@ -469,46 +497,82 @@ def particle_demo(L_shell = 4 ,
 particle_demo()
 
 
-'''
-loops = 1000
-t = np.linspace(0, 2*np.pi,loops)
-x = np.sin(t)
-y = np.cos(t)
-phase = np.zeros(loops)
-for i in range (0,loops):
-    T , pitch, phase[i], L, lon, lat = cartesiantomagnocoords(20,0,0,x[i],y[i],0)
-  
-#print(phase)
-plt.plot(t,phase)
-        
-    #print('Kinetic Energy = {0:.2f} \npitch agle = {1:.2f} \nPhase = {2:.2f}\nL = {3:.2f} \nlongitude = {4:.2f} \nLatitude = {5:.2f}'.format( T , pitch, phase, L, lon, lat  ))
 
-
-'''
-
-
-
-'''
-inp = input("Enter A,B,C,D for different initial conditions \n")
-if inp == 'A':
-    #inputs (x0,y0,z0,Vx0,Vy0,Vz0)   
-    print('Input accepted')
-  
-    main(20,0,0,0,1,0)
-    T , pitch, phase, L, lon, lat = cartesiantomagnocoords(20,0,0,0,0,.1)
-    print('Kinetic Energy = {0:.2f} \npitch agle = {1:.2f} \nPhase = {2:.2f}\nL = {3:.2f} \nlongitude = {4:.2f} \nLatitude = {5:.2f}'.format( T , pitch, phase, L, lon, lat  ))
+''' old
+    #3d plot
+    ax = plt.axes(projection='3d')
     
-elif inp == 'B':
-    print('Input accepted')
-    main(20,0,0,0,.1,.1)
+    # Data for a three-dimensional line 
+   
+    #ax.plot3D(xline, yline, zline)
+    u, v = np.mgrid[0:2*np.pi:20j, 0:np.pi:10j]
+    x = 10*np.cos(u)*np.sin(v)
+    y = 10*np.sin(u)*np.sin(v)
+    z = 10*np.cos(v)
+    ax.plot_surface(x, y, z, color="r", alpha = .3)
+    plt.title('3D plot')
+    '''
+ 
     
-elif inp == 'C':
-    print('Input accepted')
-    main(20,0,0,0,1,.1)
-elif inp == 'D':
-    print('Input accepted')
-    main(20,0,10,0,1,0)
     
-else :
-    print('Invalid input')
 '''
+    #export to csv
+    export = np.array( [[t_eval], [xline], [yline],[zline]])
+    #print(export)
+    export_reshaped = np.transpose(export.reshape(export.shape[0], -1))
+    #print(export_reshaped)
+    np.savetxt('file.csv',export_reshaped,delimiter='.')
+    '''
+    
+    
+    #animation maker old
+'''
+    start = 0
+    stop = 500
+    #add multithreading here
+    for i in range(start,stop): #bottleneck in this loop
+       
+        xdata = xline[i]
+        ydata = yline[i]
+        zdata = zline[i]
+        ax.scatter3D(xdata, ydata, zdata, c=zdata, marker ='.' );
+              
+        plt.savefig('3dplot/file_{0:03d}.png'.format(i),dpi = 600)
+        plt.clf()
+        ax = plt.axes(projection='3d')
+        ax.plot_surface(x, y, z, color="r", alpha = .3)
+        plt.title('3D plot')
+    #gif maker 
+    import imageio
+    images = []
+    for i in range(start,stop): #this one doesn't take long
+        images.append(imageio.imread('3dplot/file_{0:03d}.png'.format(i)))
+    imageio.mimsave('3dplot/movie.gif', images)
+    
+    # foruier anaylis of x  note to self to see all periods convert to l-shell and look at l, and 2 spherical angles
+    
+    #wx = fft(soln.y[0])
+    
+    # Number of samplepoints
+    f_s = 1/dt
+    t = t
+    x = soln.y[0]
+    
+    fig, ax = plt.subplots()
+    ax.plot(t, x)
+    ax.set_xlabel('Time [s]')
+    ax.set_ylabel('Signal amplitude');
+    
+    from scipy import fftpack
+    
+    X = fftpack.fft(x)
+    freqs = fftpack.fftfreq(len(x)) * f_s
+    
+    fig, ax = plt.subplots()
+    
+    ax.loglog(freqs, np.abs(X),)
+    ax.set_xlabel('Frequency in Hertz [Hz]')
+    ax.set_ylabel('Frequency Domain (Spectrum) Magnitude')
+    ax.set_xlim(0, 1)
+    #ax.set_ylim(0, 10000)
+    '''
