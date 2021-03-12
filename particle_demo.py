@@ -180,6 +180,7 @@ def main(x0,y0,z0,Vx0,Vy0,Vz0):
         timelabel = 'Time (Tc)'
         Tc = 2 *np.pi * m / (e*Bi)
         tc = t/Tc
+        
         #energy plot
         plt.clf()
         plt.figure(1)
@@ -189,7 +190,7 @@ def main(x0,y0,z0,Vx0,Vy0,Vz0):
         plt.title('Error in energy')
         plt.xlabel(timelabel)
         plt.ylabel('Ratio of T/T0')
-        plt.savefig('ParticlePlots/Energy.png' ,format = 'png')
+        plt.savefig('ParticlePlots/' + filename + 'Energy.png' ,format = 'png')
         
         #velocity plots
         #x,y,z
@@ -202,10 +203,10 @@ def main(x0,y0,z0,Vx0,Vy0,Vz0):
         plt.plot(tc, VtoT(soln.y[4]))
         plt.plot(tc, VtoT(soln.y[5]))
         plt.legend(['Tx', 'Ty', 'Tz'])
-        plt.title('')
+        plt.title('Initial pitch angle = {0:.2f} degrees'.format(pitchangle) )
         plt.xlabel(timelabel)
         plt.ylabel('Kinetic Energy (eV)')
-        plt.savefig('ParticlePlots/CartesianVelocity.png' ,format = 'png')
+        plt.savefig('ParticlePlots/' + filename+ 'CartesianVelocity.png' ,format = 'png')
         
         #V, Vparr,Vperp
         plt.figure(3)
@@ -217,7 +218,7 @@ def main(x0,y0,z0,Vx0,Vy0,Vz0):
         plt.xlabel(timelabel)
         plt.ylabel('Energy (eV)')
         #plt.ylim(0,1.2)
-        plt.savefig('ParticlePlots/Parallel-Perpendicular Velocity.png' ,format = 'png')
+        plt.savefig('ParticlePlots/'+filename+'Parallel-Perpendicular Velocity.png' ,format = 'png')
         
         #postion
         plt.figure(4)
@@ -225,10 +226,10 @@ def main(x0,y0,z0,Vx0,Vy0,Vz0):
         plt.plot(tc, soln.y[1])
         plt.plot(tc, soln.y[2])
         plt.legend(['x','y','z'])
-        plt.title('Position in Cartesian')
+        plt.title('Initial pitch angle = {0:.2f} degrees'.format(pitchangle) )
         plt.xlabel(timelabel)
         plt.ylabel('Distance (m)')
-        plt.savefig('ParticlePlots/Cartesian position.png' ,format = 'png')
+        plt.savefig('ParticlePlots/'+filename+'Cartesian position.png' ,format = 'png')
         
         
         plt.figure(5)
@@ -238,24 +239,24 @@ def main(x0,y0,z0,Vx0,Vy0,Vz0):
         plt.legend([ 'L '])
         plt.title('L-Shell Coords')
         plt.xlabel(timelabel)
-        plt.ylabel('Radial Distance (m)')
-        plt.savefig('ParticlePlots/L-shell.png' ,format = 'png')
+        plt.ylabel('L')
+        plt.savefig('ParticlePlots/'+filename+'L-shell.png' ,format = 'png')
         
         #xy plot
         plt.figure(6)
         plt.plot(soln.y[0],soln.y[1])
-        plt.title('XY position')
+        plt.title('Initial pitch angle = {0:.2f} degrees'.format(pitchangle) )
         plt.xlabel('X (m)')
         plt.ylabel('Y (m)')
         plt.axes().set_aspect('equal', 'datalim')
-        plt.savefig('ParticlePlots/XvsY.png' ,format = 'png')        
+        plt.savefig('ParticlePlots/'+filename+'XvsY.png' ,format = 'png')        
         plt.show()
         
     if threedplots == True: # 3d animation
         xpoints = soln.y[0]
         ypoints = soln.y[1]
         zpoints = soln.y[2]
-        fig = plt.figure(figsize=(16,9))
+        fig = plt.figure(figsize=(9,9))
         
     
         #ax1 = plt.subplot(3,3,1)
@@ -292,7 +293,7 @@ def main(x0,y0,z0,Vx0,Vy0,Vz0):
         # Gráfica final #
         axf.set_xlim(-2,2)
         axf.set_ylim(-2,2)
-        axf.set_zlim(-2,2)
+        axf.set_zlim(-1,1)
         axf.grid()
         axf.set_xlabel('x(m)')
         axf.set_ylabel('y(m)')
@@ -314,7 +315,7 @@ def main(x0,y0,z0,Vx0,Vy0,Vz0):
         
         
         def drawframe(n):
-            n = 5*n #why am I doing this instead of increasing dt? it's becasue this keeps line percision while allowing me to keep frame < 1000
+            n = 10*n #why am I doing this instead of increasing dt? it's becasue this keeps line percision while allowing me to keep frame < 1000
             x = xpoints[n]
             y = ypoints[n]
             z = zpoints[n]
@@ -330,17 +331,17 @@ def main(x0,y0,z0,Vx0,Vy0,Vz0):
             line3.set_data(tpoints[0:n],zpoints[0:n])
             pt3.set_data(t,z)
             '''
-            angle = (360/10000)*n+45 
+            angle = (360/10000)*5*n+45 
             axf.view_init(30, angle)
             return (linef,ptf)
         
         from matplotlib import animation
         
         
-        anim = animation.FuncAnimation(fig, drawframe, frames = 800, interval=1, blit=True,  cache_frame_data = False) # run out of memory if frame number is too high < 1000?
+        anim = animation.FuncAnimation(fig, drawframe, frames = 600, interval=1, blit=True,  cache_frame_data = False) # run out of memory if frame number is too high < 1000?
         
         
-        anim.save('3ddipolemotion.mp4', writer='imagemagick',fps = 24) #.gifs are big, .webm is compressed and small, mkvs are medium and look nice with lower compatability 
+        anim.save('ParticlePlots/'+filename+'_3ddipolemotion.avif', writer='imagemagick',fps = 24) #.gifs are big, .webm is compressed and small, mkvs are medium and look nice with lower compatability 
         
         
     
@@ -450,7 +451,7 @@ def ctd2car(pitch, phase, Kinetic_energy, Lshell, latitude, longitude):
 def particle_demo(L_shell = 2 ,
                  latitude = 0, #all angles in degrees
                  longitude = 0 , 
-                 pitch = 0  ,
+                 pitch = 60  ,
                  phase = 0 ,
                  Kinetic_energy = 1 , # in eV/kg
                  mass = 1e-16 , #in Kg
@@ -458,7 +459,7 @@ def particle_demo(L_shell = 2 ,
                  t = 10000, #time in seconds
                  dt = .5,
                  two2dplots = True,
-                 three3dplots = True):
+                 three3dplots = False):
 #def particle_demo(L_shell,latitude ,longitude ,pitch ,phase ,Kinetic_energy/m,charge,t,dt):
     #convert all angles to degrees
     global pitchangle
@@ -495,8 +496,12 @@ def particle_demo(L_shell = 2 ,
 
 
 
-#maybe run this a short with different inital conditions and names to save
-particle_demo()
+
+for j in [0,30,45,60,90]:
+    global filename 
+    filename = 'pitch{0}'.format(j)
+    particle_demo(pitch =j,three3dplots=True)
+  
 
 
 
