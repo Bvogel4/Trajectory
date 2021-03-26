@@ -8,12 +8,8 @@ Created on Wed Oct  2 11:17:51 2019
 import numpy as np
 import math as math
 from matplotlib import pyplot as plt
-import matplotlib
 from scipy.integrate import solve_ivp
-from sklearn.preprocessing import normalize
-from mpl_toolkits import mplot3d
 import os
-from scipy.fft import fft, fftfreq
 from vtk_export import vtk_export
 import tempfile
 #creates new folder for animation if it doesn't already exist
@@ -71,7 +67,7 @@ def dUdt(t,U):
     dVzdt = e/m* (Vx*By - Vy*Bx)
     U = [x,y,z,Vx,Vy,Vz]
     
-    #=!how to find x,y,z?
+    
     
     return U[3] , U[4], U[5], dVxdt, dVydt, dVzdt
 
@@ -122,6 +118,111 @@ def VparVperp(x,y,z,Vx,Vy,Vz): #retrns Vpar and Vperp from 6 inputs
     
     #V = np.sqrt(Vparrallel**2+Vperpendicular**2)
     return Vparrallel, Vperpendicular ,V_perp # last value is a vector, first 2 are scalar magnitudes
+
+
+        
+    
+  #trajectory- (x,y,z)=(%.1f,%.1f,%.1f); (vx,vy,vz)=(%.1f,%.1f,%.1f) GSM
+
+#convert intital conditions to pitch angle, azimuth angle(phase?) magnetic moment and energy
+#postion L shell and 2 angles
+
+def car2ctd(x0,y0,z0,Vx0,Vy0,Vz0): #doesnt work with vector lists. 
+    
+    T = .5 * m *( np.power(Vx0,2) + np.power(Vy0,2) + np.power(Vz0,2) )
+    
+    #funtioncall to get Vpar and Vperp
+    (Vparrallel, Vperpendicular, V_perp) = VparVperp(x0,y0,z0,Vx0,Vy0,Vz0)
+    #pitch angle
+    alpha = np.arctan2(Vperpendicular,Vparrallel)
+    r = (x0,y0,z0)
+    R_mag = np.sqrt(np.power(r[0],2) + np.power(r[1],2) + np.power(r[2],2)  )
+    latitude = np.arcsin(z0/R_mag)
+    longitude = np.arctan2(y0,x0)
+    (L,latitude) = cartesiantoLshell(x0, y0, z0)
+    (Bx , By, Bz) = B(x0,y0,z0)
+    B0 = np.array([Bx , By, Bz])
+    #phase shouldn't matter much for gyroid motion 
+    rPar = (np.dot(r,B0)/(np.dot(B0,B0)))*B0
+    rPerp = r - rPar
+    #print(rPerp,'\n')
+    rPerpM = np.sqrt(np.power(rPerp[0],2) + np.power(rPerp[1],2) + np.power(rPerp[2],2)  )
+    
+    #print(V_perp,'\n')
+    temp1 = np.dot(rPerp,V_perp)
+    temp2 = Vperpendicular * rPerpM
+    
+    phase = np.arccos(temp1/temp2) # this only returns the angle from 0 to pi --- should be fixed now
+    #take cross prodcut of r_perp and Vperp to find sign of phase
+    cross = np.cross(rPerp,V_perp)
+    direction = np.sign(np.dot(B0,cross))
+    if direction == -1:
+        phase = -phase +2*np.pi #should now return phase from 0-2pi
+         
+    
+    #print(phase)
+ 
+    return T, math.degrees(alpha), math.degrees(phase), L, math.degrees(longitude), math.degrees(latitude)
+
+
+def ctd2car(pitch, phase, Kinetic_energy, Lshell, latitude, longitude):
+    r = Lshell* np.power(np.cos(latitude),2)
+    #print(r)
+    phi = np.pi/2 - latitude
+    
+    x = r * np.sin(phi) * np.cos(longitude)
+    y = r * np.sin(phi) * np.sin(longitude)
+    z = r* np.cos(phi)
+    (Bx, By, Bz) = B(x,y,z)
+    (Bx, By, Bz) = Bnormal(Bx, By, Bz)
+    
+    
+    V_mag = np.sqrt(2/m * Kinetic_energy) 
+    V_par = np.cos(pitch)* V_mag
+    V_perp = np.sin(pitch)* V_mag
+    #print(V_mag,V_par,V_perp)
+    
+    Vparx = Bx * V_par
+    Vpary = By * V_par
+    Vparz = Bz * V_par
+
+    #phase shouldn't matter much for gyroid motion 
+    
+    B0 = np.array([Bx , By, Bz])
+    
+    r = (x,y,z)
+   # print(r)
+    rPar = (np.dot(r,B0)/(np.dot(B0,B0)))*B0
+   # print(rPar)
+    rPerp = r - rPar
+    #print(rPerp)
+    rperp_mag = np.sqrt(np.power(rPerp[0],2) + np.power(rPerp[1],2) + np.power(rPerp[2],2)  ) 
+    if rperp_mag == 0: #can't normalize a vector with length 0!
+        rperpx = 0
+        rperpy = 0
+        rperpz = 0
+    else:
+        rperpx = rPerp[0]/rperp_mag
+        rperpy = rPerp[1]/rperp_mag
+        rperpz = rPerp[2]/rperp_mag
+        
+    r_Perp = np.array([rperpx,rperpy,rperpz])
+    vhat = np.cos(phase)* r_Perp + np.sin(phase) *(np.cross(r_Perp,B0)) #normalized v perpendicular direction
+    
+    Vperpx = vhat[0]*V_perp
+    Vperpy = vhat[1]*V_perp
+    Vperpz = vhat[2]*V_perp
+    ''' old code for hardcode phase
+    Vperpx = rperpx*V_perp
+    Vperpy = rperpy*V_perp
+    Vperpz = rperpz*V_perp
+    '''
+    Vx = Vperpx + Vparx
+    Vy = Vperpy + Vpary
+    Vz = Vperpz + Vparz
+    
+    
+    return x, y, z, Vx, Vy, Vz
      
 
 def main(x0,y0,z0,Vx0,Vy0,Vz0):  
@@ -161,7 +262,7 @@ def main(x0,y0,z0,Vx0,Vy0,Vz0):
     #for vtk export
     points = np.column_stack([xline,yline,zline])
     tmpdir = tempfile.gettempdir()
-    out_filename = os.path.join(tmpdir,'particle_motion.vtk')
+    out_filename = os.path.join(tmpdir, filename + 'particle_motion.vtk')
     #out_filename = 'C:/Users/blake/.spyder-py3/.particle_motion.vtk'
     ftype = 'ASCII' 
     connectivity = {'LINES' : np.array([5,5,3])}
@@ -177,8 +278,9 @@ def main(x0,y0,z0,Vx0,Vy0,Vz0):
         '''
         2D Plots:
         '''
-        timelabel = 'Time (Tc)'
         Tc = 2 *np.pi * m / (e*Bi)
+        timelabel = 'Time (Tc)'
+       
         tc = t/Tc
         
         #energy plot
@@ -237,7 +339,7 @@ def main(x0,y0,z0,Vx0,Vy0,Vz0):
         (L,o) = cartesiantoLshell(soln.y[0],soln.y[1],soln.y[2])
         plt.plot(tc,L)
         plt.legend([ 'L '])
-        plt.title('L-Shell Coords')
+        plt.title('Initial pitch angle = {0:.2f} degrees'.format(pitchangle) )
         plt.xlabel(timelabel)
         plt.ylabel('L')
         plt.savefig('ParticlePlots/'+filename+'L-shell.png' ,format = 'png')
@@ -250,8 +352,88 @@ def main(x0,y0,z0,Vx0,Vy0,Vz0):
         plt.ylabel('Y (m)')
         plt.axes().set_aspect('equal', 'datalim')
         plt.savefig('ParticlePlots/'+filename+'XvsY.png' ,format = 'png')        
+        
+    
+       
+        phaselist = []
+        lonlist = []
+        latlist = []
+        tlist = []
+        tindex = int(t_runtime/dt)
+        for k in range(0,tindex - int(1/dt)):  # i know this is sub-optimal but car2ctd doesn't work with vectors
+            T,pitch,phase,L,lon,lat = car2ctd(xline[k],yline[k],zline[k],Vx[k],Vy[k],Vz[k])
+            phaselist.append(phase)
+            lonlist.append(lon)
+            latlist.append(lat)
+            
+            #tlist.append(t[k])# i know there is a better way
+        tlist = t[0:tindex - int(1/dt)] # there it is
+        phaselist = np.array(phaselist)
+        tlist = np.array(tlist)
+        
+        
+      
+        x = np.sin(np.radians(phaselist))
+        y = np.sin(np.radians(latlist))
+        z = np.sin(np.radians(lonlist))
+        #z = latlist
+       
+        #print(tlist)
+        #print(x)
+    if _fft == True:
+        i1 = int(20*Tc/dt)
+        i2 = 10*i1
+        plt.figure(7)
+        plt.plot(tlist[0:i1],x[0:i1])
+        plt.title('Sine phase')
+        plt.xlabel('Time [s]')
+        plt.ylabel('Signal amplitude');
+        
+        plt.figure(8)
+        plt.plot(tlist[0:i2],y[0:i2])
+        plt.title('Sine latitude')
+        plt.xlabel('Time [s]')
+        plt.ylabel('Signal amplitude');
+        
+        
+        plt.figure(9)
+        plt.plot(tlist,z)
+        plt.title('Sine longitude')
+        plt.xlabel('Time [s]')
+        plt.ylabel('Signal amplitude');
+        
+        f_s = 1/dt
+        from scipy import fftpack
+        import scipy.signal
+        
+        X = fftpack.fft(x)
+        Y = fftpack.fft(y)
+        Z = fftpack.fft(z)
+        freqs = fftpack.fftfreq(len(x)) * f_s
+        
+        #fftshift gets rid of a horizontal line in the plot
+        freqs = np.fft.fftshift(freqs)
+        X = np.fft.fftshift(X)
+        Y = np.fft.fftshift(Y) 
+        Z = np.fft.fftshift(Z)
+        #peaks = scipy.signal.find_peaks(X,prominence = 1000)
+        #print(peaks)
+        #print(Tc)
+        fig, ax = plt.subplots(dpi = 1200)
+        
+        ax.loglog(freqs, np.abs(X),linestyle = '-')
+        ax.loglog(freqs, np.abs(Y),linestyle = '-')
+        ax.loglog(freqs, np.abs(Z),linestyle = '-')
+        ax.set_xlabel('Frequency in Hertz [Hz]')
+        ax.set_ylabel('Frequency Domain (Spectrum) Magnitude')
+        ax.legend(['phase','latitude','longitude'])
+        ax.set_title('Initial pitch angle = {0:.2f} degrees:  Fc = {1:.2e}s'.format(pitchangle,1/Tc) )
+        ax.set_ylim(1e-1, 1e6)
+        #ax.set_ylim(0, 10000)
+        
         plt.show()
         
+    
     if threedplots == True: # 3d animation
         xpoints = soln.y[0]
         ypoints = soln.y[1]
@@ -263,6 +445,7 @@ def main(x0,y0,z0,Vx0,Vy0,Vz0):
         #ax2 = plt.subplot(3,3,2)
         #ax3 = plt.subplot(3,3,3)
         axf = plt.subplot(3,3,(1,9),projection = '3d')
+        #might use plots like these to show seperate coords in animation
         '''
         # Gráfica 1 #
         ax1.set_xlim(-1,53)
@@ -315,7 +498,7 @@ def main(x0,y0,z0,Vx0,Vy0,Vz0):
         
         
         def drawframe(n):
-            n = 10*n #why am I doing this instead of increasing dt? it's becasue this keeps line percision while allowing me to keep frame < 1000
+            n = 10*n #keeps the frames at a reasonable ammount
             x = xpoints[n]
             y = ypoints[n]
             z = zpoints[n]
@@ -338,128 +521,27 @@ def main(x0,y0,z0,Vx0,Vy0,Vz0):
         from matplotlib import animation
         
         
-        anim = animation.FuncAnimation(fig, drawframe, frames = 600, interval=1, blit=True,  cache_frame_data = False) # run out of memory if frame number is too high < 1000?
+        anim = animation.FuncAnimation(fig, drawframe, frames = 600, interval=1, blit=True,  cache_frame_data = False) # run out of memory if frame number is too high > 1000?
         
         
-        anim.save('ParticlePlots/'+filename+'_3ddipolemotion.avif', writer='imagemagick',fps = 24) #.gifs are big, .webm is compressed and small, mkvs are medium and look nice with lower compatability 
+        anim.save('ParticlePlots/'+filename+'_3ddipolemotion.mp4', writer='imagemagick',fps = 24) #.gifs are big, .webm is compressed and small, mkvs are medium and look nice with lower compatability 
         
-        
-    
-  #trajectory- (x,y,z)=(%.1f,%.1f,%.1f); (vx,vy,vz)=(%.1f,%.1f,%.1f) GSM
 
-#convert intital conditions to pitch angle, azimuth angle(phase?) magnetic moment and energy
-#postion L shell and 2 angles
-
-def car2ctd(x0,y0,z0,Vx0,Vy0,Vz0): 
-    
-    T = .5 * m *( np.power(Vx0,2) + np.power(Vy0,2) + np.power(Vz0,2) )
-    
-    #funtioncall to get Vpar and Vperp
-    (Vparrallel, Vperpendicular, V_perp) = VparVperp(x0,y0,z0,Vx0,Vy0,Vz0)
-    #pitch angle
-    alpha = np.arctan2(Vperpendicular,Vparrallel)
-    r = (x0,y0,z0)
-    R_mag = np.sqrt(np.power(r[0],2) + np.power(r[1],2) + np.power(r[2],2)  )
-    latitude = np.arcsin(z0/R_mag)
-    longitude = np.arctan2(y0,x0)
-    (L,latitude) = cartesiantoLshell(x0, y0, z0)
-    (Bx , By, Bz) = B(x0,y0,z0)
-    B0 = np.array([Bx , By, Bz])
-    #phase shouldn't matter much for gyroid motion 
-    rPar = (np.dot(r,B0)/(np.dot(B0,B0)))*B0
-    rPerp = r - rPar
-    #print(rPerp,'\n')
-    rPerpM = np.sqrt(np.power(rPerp[0],2) + np.power(rPerp[1],2) + np.power(rPerp[2],2)  )
-    
-    #print(V_perp,'\n')
-    temp1 = np.dot(rPerp,V_perp)
-    temp2 = Vperpendicular * rPerpM
-    
-    phase = np.arccos(temp1/temp2) #!!!! this only returns the angle from 0 to pi --- should be fixed now
-    #take cross prodcut of r_perp and Vperp to find sign of phase
-    cross = np.cross(rPerp,V_perp)
-    direction = np.sign(np.dot(B0,cross))
-    if direction == -1:
-        phase = -phase +2*np.pi #should now return phase from 0-2pi
-         
-    
-    #print(phase)
- 
-    return T, math.degrees(alpha), math.degrees(phase), L, math.degrees(longitude), math.degrees(latitude)
-
-
-def ctd2car(pitch, phase, Kinetic_energy, Lshell, latitude, longitude):
-    r = Lshell* np.power(np.cos(latitude),2)
-    print(r)
-    phi = np.pi/2 - latitude
-    
-    x = r * np.sin(phi) * np.cos(longitude)
-    y = r * np.sin(phi) * np.sin(longitude)
-    z = r* np.cos(phi)
-    (Bx, By, Bz) = B(x,y,z)
-    (Bx, By, Bz) = Bnormal(Bx, By, Bz)
-    
-    
-    V_mag = np.sqrt(2/m * Kinetic_energy) 
-    V_par = np.cos(pitch)* V_mag
-    V_perp = np.sin(pitch)* V_mag
-    print(V_mag,V_par,V_perp)
-    
-    Vparx = Bx * V_par
-    Vpary = By * V_par
-    Vparz = Bz * V_par
-
-    #phase shouldn't matter much for gyroid motion 
-    
-    B0 = np.array([Bx , By, Bz])
-    
-    r = (x,y,z)
-    print(r)
-    rPar = (np.dot(r,B0)/(np.dot(B0,B0)))*B0
-    print(rPar)
-    rPerp = r - rPar
-    print(rPerp)
-    rperp_mag = np.sqrt(np.power(rPerp[0],2) + np.power(rPerp[1],2) + np.power(rPerp[2],2)  ) 
-    if rperp_mag == 0: #can't normalize a vector with length 0!
-        rperpx = 0
-        rperpy = 0
-        rperpz = 0
-    else:
-        rperpx = rPerp[0]/rperp_mag
-        rperpy = rPerp[1]/rperp_mag
-        rperpz = rPerp[2]/rperp_mag
-        
-    r_Perp = np.array([rperpx,rperpy,rperpz])
-    vhat = np.cos(phase)* r_Perp + np.sin(phase) *(np.cross(r_Perp,B0)) #normalized v perpendicular direction
-    
-    Vperpx = vhat[0]*V_perp
-    Vperpy = vhat[1]*V_perp
-    Vperpz = vhat[2]*V_perp
-    ''' old code for hardcode phase
-    Vperpx = rperpx*V_perp
-    Vperpy = rperpy*V_perp
-    Vperpz = rperpz*V_perp
-    '''
-    Vx = Vperpx + Vparx
-    Vy = Vperpy + Vpary
-    Vz = Vperpz + Vparz
-    
-    
-    return x, y, z, Vx, Vy, Vz
 
 
 def particle_demo(L_shell = 2 ,
                  latitude = 0, #all angles in degrees
                  longitude = 0 , 
-                 pitch = 60  ,
+                 pitch = 90  ,
                  phase = 0 ,
                  Kinetic_energy = 1 , # in eV/kg
                  mass = 1e-16 , #in Kg
                  charge = 5e-18 , # in coulumbs
-                 t = 10000, #time in seconds
-                 dt = .5,
-                 two2dplots = True,
-                 three3dplots = False):
+                 t = 2, #time in seconds
+                 dt = .001,
+                 _2dplots = True,
+                 _3dplots = False,
+                 fft = False): # adds compute intensive 3d animation if True
 #def particle_demo(L_shell,latitude ,longitude ,pitch ,phase ,Kinetic_energy/m,charge,t,dt):
     #convert all angles to degrees
     global pitchangle
@@ -470,10 +552,13 @@ def particle_demo(L_shell = 2 ,
     phase = math.radians(phase)
     
     global twodplots
-    twodplots = two2dplots
+    twodplots = _2dplots
     
     global threedplots
-    threedplots = three3dplots
+    threedplots = _3dplots
+    
+    global _fft
+    _fft = fft
     global Re
     Re = 1
     global m 
@@ -497,30 +582,13 @@ def particle_demo(L_shell = 2 ,
 
 
 
-for j in [0,30,45,60,90]:
+for j in [90,60,45,30,0]: # generates plots with different intial pitch angles
     global filename 
     filename = 'pitch{0}'.format(j)
-    particle_demo(pitch =j,three3dplots=True)
+    particle_demo(pitch =j,_3dplots=False,fft = True)
   
 
 
-
-''' old
-    #3d plot
-    ax = plt.axes(projection='3d')
-    
-    # Data for a three-dimensional line 
-   
-    #ax.plot3D(xline, yline, zline)
-    u, v = np.mgrid[0:2*np.pi:20j, 0:np.pi:10j]
-    x = 10*np.cos(u)*np.sin(v)
-    y = 10*np.sin(u)*np.sin(v)
-    z = 10*np.cos(v)
-    ax.plot_surface(x, y, z, color="r", alpha = .3)
-    plt.title('3D plot')
-    '''
- 
-    
     
 '''
     #export to csv
@@ -529,57 +597,4 @@ for j in [0,30,45,60,90]:
     export_reshaped = np.transpose(export.reshape(export.shape[0], -1))
     #print(export_reshaped)
     np.savetxt('file.csv',export_reshaped,delimiter='.')
-    '''
-    
-    
-    #animation maker old
-'''
-    start = 0
-    stop = 500
-    #add multithreading here
-    for i in range(start,stop): #bottleneck in this loop
-       
-        xdata = xline[i]
-        ydata = yline[i]
-        zdata = zline[i]
-        ax.scatter3D(xdata, ydata, zdata, c=zdata, marker ='.' );
-              
-        plt.savefig('3dplot/file_{0:03d}.png'.format(i),dpi = 600)
-        plt.clf()
-        ax = plt.axes(projection='3d')
-        ax.plot_surface(x, y, z, color="r", alpha = .3)
-        plt.title('3D plot')
-    #gif maker 
-    import imageio
-    images = []
-    for i in range(start,stop): #this one doesn't take long
-        images.append(imageio.imread('3dplot/file_{0:03d}.png'.format(i)))
-    imageio.mimsave('3dplot/movie.gif', images)
-    
-    # foruier anaylis of x  note to self to see all periods convert to l-shell and look at l, and 2 spherical angles
-    
-    #wx = fft(soln.y[0])
-    
-    # Number of samplepoints
-    f_s = 1/dt
-    t = t
-    x = soln.y[0]
-    
-    fig, ax = plt.subplots()
-    ax.plot(t, x)
-    ax.set_xlabel('Time [s]')
-    ax.set_ylabel('Signal amplitude');
-    
-    from scipy import fftpack
-    
-    X = fftpack.fft(x)
-    freqs = fftpack.fftfreq(len(x)) * f_s
-    
-    fig, ax = plt.subplots()
-    
-    ax.loglog(freqs, np.abs(X),)
-    ax.set_xlabel('Frequency in Hertz [Hz]')
-    ax.set_ylabel('Frequency Domain (Spectrum) Magnitude')
-    ax.set_xlim(0, 1)
-    #ax.set_ylim(0, 10000)
     '''
