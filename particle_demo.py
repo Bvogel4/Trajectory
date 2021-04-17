@@ -44,6 +44,7 @@ def B(x,y,z):
      
     #bx = 3M xz/r5  M is a constant
      Bx = 3*M*x*z/np.power(r,5)
+     
      By = 3*M*y*z/np.power(r,5)
      Bz = M*(3*np.power(z,2) - np.power(r,2))/np.power(r,5)
     
@@ -71,7 +72,7 @@ def dUdt(t,U):
     
     return U[3] , U[4], U[5], dVxdt, dVydt, dVzdt
 
-#make sure V is not aligned with position only
+
 def cartesiantoLshell(x,y,z):
    
     r = np.sqrt(np.power(x,2) + np.power(y,2) +np.power(z,2))
@@ -227,38 +228,93 @@ def ctd2car(pitch, phase, Kinetic_energy, Lshell, latitude, longitude):
 
 def main(x0,y0,z0,Vx0,Vy0,Vz0):  
     
+    #integrator scipy
+    #time length and accuracy ( scipydoes not care about dt too much)
+   
     
-    # time length and accuracy ( scipydoes not care about dt too much)
     dt = d_t
     tfinal = t_runtime
     
     looplimit = int(tfinal/dt)
     looplimit = looplimit +1
-    t = dt*np.linspace(0,looplimit -1,looplimit)
-    t_span = (0.0, tfinal) # Provide solution over this time range
-    y0 = [x0,y0,z0,Vx0,Vy0,Vz0]             # Initial conditions
-     
-    t_eval = dt*np.linspace(0, looplimit -1, looplimit)
-    soln = solve_ivp( dUdt, t_span, y0, method='RK45', t_eval=t_eval)
+    def rk45():
+        t = dt*np.linspace(0,looplimit -1,looplimit)
+        t_span = (0.0, tfinal) # Provide solution over this time range
+        S0 = [x0,y0,z0,Vx0,Vy0,Vz0]             # Initial conditions
+        
+        t_eval = dt*np.linspace(0, looplimit -1, looplimit)
+        soln = solve_ivp( dUdt, t_span, S0, method='RK45', t_eval=t_eval)
+        
+        xline = soln.y[0]
+        yline = soln.y[1]
+        zline = soln.y[2]
+        Vx = soln.y[3]
+        Vy = soln.y[4]
+        Vz = soln.y[5]
+        return xline,yline,zline,Vx,Vy,Vz
+    
+    #integrator boris method
+    #boris method may care very much what dt is
+    #boris has the benifit of consercing energy, and enable the computation with a electric field
+    def boris():
+        dt = d_t;
+        mass = m
+        charge = e;
+        duration = looplimit;
+       
+        v = np.array([Vx0,Vy0,Vz0]);
+        p = np.array([x0,y0,z0]);
+        
+        b = np.array([0.,0.,1.])
+        #B = np.array([0., 0., 1.]);
+        
+        E = np.array([0., 0., 0.]);
+        
+        S = np.zeros((duration,3)) 
+        V = np.zeros((duration,3)) 
+        
+        for time in range(duration):
+            
+            (b[0],b[1],b[2]) = B(p[0],p[1],p[2])
+            
+            t = charge / mass * b * 0.5 * dt;
+            s = 2. * t / (1. + t*t);
+            v_minus = v + charge / (mass ) * E * 0.5 * dt;
+            v_prime = v_minus + np.cross(v_minus,t);
+            v_plus = v_minus + np.cross(v_prime,s);
+            v = v_plus + charge / (mass ) * E * 0.5 * dt;
+            
+            p = p + v * dt;
+            
+            S[time,:] = p;
+            V[time,:] = v; 
+        
+        xline = S[:, 0]
+        yline = S[:, 1]
+        zline = S[:, 2]
+        Vx = V[:,0]
+        Vy = V[:,1]
+        Vz = V[:,2]
+        return xline,yline,zline,Vx,Vy,Vz
+    
+    if integrator == 'rk45':
+        xline,yline,zline,Vx,Vy,Vz = rk45()
+    if integrator == 'boris':
+        xline,yline,zline,Vx,Vy,Vz = boris()
+    
     
     # kinetic energy over time should be constant, variances are due to error
     
-    T = .5 * m *( np.power(soln.y[3],2) + np.power(soln.y[4],2) + np.power(soln.y[5],2) )
+    T = .5 * m *( np.power(Vx,2) + np.power(Vy,2) + np.power(Vz,2) )
     T0 = T[0]
+    
+
 
     #getting V parrallel and V perpendicular
-    Vx = soln.y[3]
-    Vy = soln.y[4]
-    Vz = soln.y[5]
-    
-    xline = soln.y[0]
-    yline = soln.y[1]
-    zline = soln.y[2]
-
     (Vparrallel, Vperpendicular,V_perp) = VparVperp(xline,yline,zline,Vx, Vy, Vz) 
     
     
-       
+    
     #for vtk export
     points = np.column_stack([xline,yline,zline])
     tmpdir = tempfile.gettempdir()
@@ -278,6 +334,7 @@ def main(x0,y0,z0,Vx0,Vy0,Vz0):
         '''
         2D Plots:
         '''
+        t = dt*np.linspace(0,looplimit -1,looplimit)
         Tc = 2 *np.pi * m / (e*Bi)
         timelabel = 'Time (Tc)'
        
@@ -289,10 +346,11 @@ def main(x0,y0,z0,Vx0,Vy0,Vz0):
         plt.plot(tc,T/T0)
         #plt.ylim(0,1.2)
         plt.legend(['Kinetic Energy'])
-        plt.title('Error in energy')
+        plt.title('Error in energy '+ filename)
         plt.xlabel(timelabel)
         plt.ylabel('Ratio of T/T0')
         plt.savefig('ParticlePlots/' + filename + 'Energy.png' ,format = 'png')
+        #plt.ylim(.9, 1.1)
         
         #velocity plots
         #x,y,z
@@ -301,9 +359,9 @@ def main(x0,y0,z0,Vx0,Vy0,Vz0):
             return T
         
         plt.figure(2)
-        plt.plot(tc, VtoT(soln.y[3]))
-        plt.plot(tc, VtoT(soln.y[4]))
-        plt.plot(tc, VtoT(soln.y[5]))
+        plt.plot(tc, VtoT(Vx))
+        plt.plot(tc, VtoT(Vy))
+        plt.plot(tc, VtoT(Vz))
         plt.legend(['Tx', 'Ty', 'Tz'])
         plt.title('Initial pitch angle = {0:.2f} degrees'.format(pitchangle) )
         plt.xlabel(timelabel)
@@ -324,9 +382,9 @@ def main(x0,y0,z0,Vx0,Vy0,Vz0):
         
         #postion
         plt.figure(4)
-        plt.plot(tc, soln.y[0])
-        plt.plot(tc, soln.y[1])
-        plt.plot(tc, soln.y[2])
+        plt.plot(tc, xline)
+        plt.plot(tc, yline)
+        plt.plot(tc, zline)
         plt.legend(['x','y','z'])
         plt.title('Initial pitch angle = {0:.2f} degrees'.format(pitchangle) )
         plt.xlabel(timelabel)
@@ -336,7 +394,7 @@ def main(x0,y0,z0,Vx0,Vy0,Vz0):
         
         plt.figure(5)
         #L-shell
-        (L,o) = cartesiantoLshell(soln.y[0],soln.y[1],soln.y[2])
+        (L,o) = cartesiantoLshell(xline,yline,zline)
         plt.plot(tc,L)
         plt.legend([ 'L '])
         plt.title('Initial pitch angle = {0:.2f} degrees'.format(pitchangle) )
@@ -346,15 +404,17 @@ def main(x0,y0,z0,Vx0,Vy0,Vz0):
         
         #xy plot
         plt.figure(6)
-        plt.plot(soln.y[0],soln.y[1])
+        plt.axes().set_aspect('equal', 'datalim')
+        plt.plot(xline,yline)
         plt.title('Initial pitch angle = {0:.2f} degrees'.format(pitchangle) )
         plt.xlabel('X (m)')
         plt.ylabel('Y (m)')
-        plt.axes().set_aspect('equal', 'datalim')
         plt.savefig('ParticlePlots/'+filename+'XvsY.png' ,format = 'png')        
         
     
        
+        
+    if _fft == True:
         phaselist = []
         lonlist = []
         latlist = []
@@ -380,7 +440,6 @@ def main(x0,y0,z0,Vx0,Vy0,Vz0):
        
         #print(tlist)
         #print(x)
-    if _fft == True:
         i1 = int(20*Tc/dt)
         i2 = 10*i1
         plt.figure(7)
@@ -429,15 +488,16 @@ def main(x0,y0,z0,Vx0,Vy0,Vz0):
         ax.legend(['phase','latitude','longitude'])
         ax.set_title('Initial pitch angle = {0:.2f} degrees:  Fc = {1:.2e}s'.format(pitchangle,1/Tc) )
         ax.set_ylim(1e-1, 1e6)
+        plt.savefig('ParticlePlots/'+filename+'fft.png' ,format = 'png') 
         #ax.set_ylim(0, 10000)
         
         plt.show()
         
     
     if threedplots == True: # 3d animation
-        xpoints = soln.y[0]
-        ypoints = soln.y[1]
-        zpoints = soln.y[2]
+        xpoints = xline
+        ypoints = yline
+        zpoints = zline
         fig = plt.figure(figsize=(9,9))
         
     
@@ -535,15 +595,18 @@ def particle_demo(L_shell = 2 ,
                  pitch = 90  ,
                  phase = 0 ,
                  Kinetic_energy = 1 , # in eV/kg
-                 mass = 1e-16 , #in Kg
+                 mass = 1e-20 , #in Kg
                  charge = 5e-18 , # in coulumbs
-                 t = 2, #time in seconds
-                 dt = .001,
+                 tp = 500, #time in tc ~ 50 error gets high
+                 method = 'boris',
                  _2dplots = True,
                  _3dplots = False,
                  fft = False): # adds compute intensive 3d animation if True
 #def particle_demo(L_shell,latitude ,longitude ,pitch ,phase ,Kinetic_energy/m,charge,t,dt):
     #convert all angles to degrees
+    
+  
+    
     global pitchangle
     pitchangle = pitch
     latitude = math.radians(latitude)
@@ -563,29 +626,41 @@ def particle_demo(L_shell = 2 ,
     Re = 1
     global m 
     m = mass #mass
-    global t_runtime
-    t_runtime = t
-    global d_t
-    d_t = dt
+    
+    global integrator
+    integrator = method
     global e
     
     e = charge
     Kinetic_energy = Kinetic_energy * 1.602176565e-19
     
     x,y,z,Vx,Vy,Vz = ctd2car(pitch, phase, Kinetic_energy, L_shell, latitude, longitude)
+    #print('initial condtion after converesion = ', x,y,z,Vx,Vy,Vy)
     
     global Bi 
     Bix,Biy,Biz = B(x,y,z)
     Bi = np.sqrt(Bix**2 + Biy**2 + Biz**2)
+    
+    Tc = 2 *np.pi * m / (e*Bi)
+    t = tp*Tc
+    
+    dt = Tc/1000
+    global d_t
+    d_t = dt
+    
+    global t_runtime
+    t_runtime = t
+    
+
     main(x,y,z,Vx,Vy,Vz)
 
 
 
-
-for j in [90,60,45,30,0]: # generates plots with different intial pitch angles
+#for j in [90,60,45,30,0]:
+for j in [45]: # generates plots with different intial pitch angles
     global filename 
-    filename = 'pitch{0}'.format(j)
-    particle_demo(pitch =j,_3dplots=False,fft = True)
+    filename = 'pitch{0}'.format(j,)
+    particle_demo(pitch =j,_3dplots=False,fft = False, method = 'boris')
   
 
 
