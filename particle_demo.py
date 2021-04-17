@@ -4,6 +4,10 @@ Created on Wed Oct  2 11:17:51 2019
 
 @author: Blake
 """
+from datetime import datetime
+startTime = datetime.now()
+
+
 
 import numpy as np
 import math as math
@@ -12,6 +16,9 @@ from scipy.integrate import solve_ivp
 import os
 from vtk_export import vtk_export
 import tempfile
+
+from numba import njit
+
 #creates new folder for animation if it doesn't already exist
 if not os.path.exists('ParticlePlots'):
         
@@ -35,7 +42,7 @@ Vy0 = 1
 Vz0 = 0
 '''
 
-
+@njit()
 def B(x,y,z):
      #magnetic field of a dipole
      M = 100 #magnetic moment M = 8x10^22 \A m^2 for earth
@@ -74,7 +81,6 @@ def dUdt(t,U):
 
 
 def cartesiantoLshell(x,y,z):
-   
     r = np.sqrt(np.power(x,2) + np.power(y,2) +np.power(z,2))
     r = r/Re #converts r to be in earth radii
     lambda0 = np.arctan2(z, np.sqrt(x**2 + y**2))
@@ -256,6 +262,7 @@ def main(x0,y0,z0,Vx0,Vy0,Vz0):
     #integrator boris method
     #boris method may care very much what dt is
     #boris has the benifit of consercing energy, and enable the computation with a electric field
+    n = 1000
     def boris():
         dt = d_t;
         mass = m
@@ -265,30 +272,36 @@ def main(x0,y0,z0,Vx0,Vy0,Vz0):
         v = np.array([Vx0,Vy0,Vz0]);
         p = np.array([x0,y0,z0]);
         
-        b = np.array([0.,0.,1.])
-        #B = np.array([0., 0., 1.]);
+        @njit
+        def loop(p,v):
+             
+            ni = int(np.floor(duration/n))
+            S = np.zeros((ni,3)) 
+            V = np.zeros((ni,3))
+            print(S.shape)
+            b = np.array([0.,0.,1.])
+            E = np.array([0., 0., 0.]);
+            j = 0
+            for i in range(duration): 
+                
+                (b[0],b[1],b[2]) = B(p[0],p[1],p[2])
+                
+                t = charge / mass * b * 0.5 * dt;
+                s = 2. * t / (1. + t*t);
+                v_minus = v + charge / (mass ) * E * 0.5 * dt;
+                v_prime = v_minus + np.cross(v_minus,t);
+                v_plus = v_minus + np.cross(v_prime,s);
+                v = v_plus + charge / (mass ) * E * 0.5 * dt;
+                p = p + v * dt;
+                
+                if np.mod(i,n) == 0:# this only grabs every nth value for storage
+                    S[j,:] = p; 
+                    V[j,:] = v; 
+                    j = j+1
+                    
+            return S,V
         
-        E = np.array([0., 0., 0.]);
-        
-        S = np.zeros((duration,3)) 
-        V = np.zeros((duration,3)) 
-        
-        for time in range(duration):
-            
-            (b[0],b[1],b[2]) = B(p[0],p[1],p[2])
-            
-            t = charge / mass * b * 0.5 * dt;
-            s = 2. * t / (1. + t*t);
-            v_minus = v + charge / (mass ) * E * 0.5 * dt;
-            v_prime = v_minus + np.cross(v_minus,t);
-            v_plus = v_minus + np.cross(v_prime,s);
-            v = v_plus + charge / (mass ) * E * 0.5 * dt;
-            
-            p = p + v * dt;
-            
-            S[time,:] = p;
-            V[time,:] = v; 
-        
+        S,V = loop(p,v)
         xline = S[:, 0]
         yline = S[:, 1]
         zline = S[:, 2]
@@ -318,10 +331,10 @@ def main(x0,y0,z0,Vx0,Vy0,Vz0):
     #for vtk export
     points = np.column_stack([xline,yline,zline])
     tmpdir = tempfile.gettempdir()
-    out_filename = os.path.join(tmpdir, filename + 'particle_motion.vtk')
+    out_filename = (filename + 'particle_motion.vtk')
     #out_filename = 'C:/Users/blake/.spyder-py3/.particle_motion.vtk'
     ftype = 'ASCII' 
-    connectivity = {'LINES' : np.array([5,5,3])}
+    connectivity = {'LINES' : np.array([points.shape[0]])}
 
     vtk_export(out_filename, points,
                     dataset = 'POLYDATA',
@@ -334,7 +347,8 @@ def main(x0,y0,z0,Vx0,Vy0,Vz0):
         '''
         2D Plots:
         '''
-        t = dt*np.linspace(0,looplimit -1,looplimit)
+        
+        t = dt*np.linspace(0,looplimit -1,int(np.floor(looplimit/n)))
         Tc = 2 *np.pi * m / (e*Bi)
         timelabel = 'Time (Tc)'
        
@@ -579,8 +593,7 @@ def main(x0,y0,z0,Vx0,Vy0,Vz0):
             return (linef,ptf)
         
         from matplotlib import animation
-        
-        
+
         anim = animation.FuncAnimation(fig, drawframe, frames = 600, interval=1, blit=True,  cache_frame_data = False) # run out of memory if frame number is too high > 1000?
         
         
@@ -595,9 +608,9 @@ def particle_demo(L_shell = 2 ,
                  pitch = 90  ,
                  phase = 0 ,
                  Kinetic_energy = 1 , # in eV/kg
-                 mass = 1e-20 , #in Kg
+                 mass = 1e-18 , #in Kg
                  charge = 5e-18 , # in coulumbs
-                 tp = 500, #time in tc ~ 50 error gets high
+                 tp = 500, #time in tc ~ 50 error gets high for rk45, boris is much more accurate
                  method = 'boris',
                  _2dplots = True,
                  _3dplots = False,
@@ -660,10 +673,10 @@ def particle_demo(L_shell = 2 ,
 for j in [45]: # generates plots with different intial pitch angles
     global filename 
     filename = 'pitch{0}'.format(j,)
-    particle_demo(pitch =j,_3dplots=False,fft = False, method = 'boris')
+    particle_demo(pitch =j,_3dplots=False,fft = False, method = 'boris',_2dplots=(False))
   
 
-
+print(datetime.now() - startTime)
     
 '''
     #export to csv
