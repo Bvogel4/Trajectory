@@ -276,7 +276,7 @@ def main(x0,y0,z0,Vx0,Vy0,Vz0):
         
         @njit
         def loop(p,v):
-            lon0 = np.arctan2(p[0],p[1])
+            lon0 = np.arctan2(p[1],p[0])
             ni = int(np.floor(duration/n))
             S = np.zeros((ni,3)) 
             V = np.zeros((ni,3))
@@ -286,7 +286,8 @@ def main(x0,y0,z0,Vx0,Vy0,Vz0):
             b = np.array([0.,0.,1.])
             E = np.array([0., 0., 0.]);
             j = 0
-            condition = False
+            initial = True
+            overlap = .02 # overlap in the shell in rads
             for i in range(duration): 
                 
                 (b[0],b[1],b[2]) = B(p[0],p[1],p[2])
@@ -305,16 +306,17 @@ def main(x0,y0,z0,Vx0,Vy0,Vz0):
                     j = j+1
                 
                 #checks to make sure particle has left initial region
-                lon = np.arctan2(p[0],p[1])
-                if condition == False:
-                    if lon >= np.pi/2:
-                        
-                        condition = True
+                lon = np.arctan2(p[1],p[0])
+                if initial == True:
+                    if lon >= 1/4*np.pi:
+                        #print('condition')
+                        initial = False
                     
-                if condition == True:
-                    dlon = abs(lon - lon0)
-                    if dlon <= 1e-3:
-                        print('break')
+                if initial == False:
+                    dlon = abs(lon - lon0 - overlap)
+                    if dlon <= 1e-4:
+                        print(lon0,lon)
+                        #print('break')
                         break
                         
                         
@@ -352,11 +354,11 @@ def main(x0,y0,z0,Vx0,Vy0,Vz0):
     
     
     #for vtk export
-    points = np.column_stack([xline,yline,zline])
+    points = np.column_stack([xline[~np.isnan(xline)],yline[~np.isnan(yline)],zline[~np.isnan(zline)]])
     tmpdir = tempfile.gettempdir()
     out_filename = (filename + 'particle_motion.vtk')
     #out_filename = 'C:/Users/blake/.spyder-py3/.particle_motion.vtk'
-    ftype = 'ASCII' 
+    ftype = 'ASCII'
     connectivity = {'LINES' : np.array([points.shape[0]])}
 
     vtk_export(out_filename, points,
@@ -365,7 +367,6 @@ def main(x0,y0,z0,Vx0,Vy0,Vz0):
                     title='Title',
                     ftype=ftype,
                     debug = False)
-    
     if twodplots == True:
         '''
         2D Plots:
@@ -682,7 +683,7 @@ def particle_demo(L_shell = 2 ,
     Tc = 2 *np.pi * m / (e*Bi)
     t = tp*Tc
     global accuracy
-    accuracy = 10000
+    accuracy = 1000
     
     dt = Tc/accuracy
     global d_t
