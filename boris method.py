@@ -24,13 +24,13 @@ def B(x,y,z):
 dt = 1e-2;
 mass = .1;
 charge = 1.;
-runtime = 100
+runtime = 10000
 duration = int(runtime/dt)
 
 
 
-p = np.array([2., 0, 1.22e-16]);
-v = np.array([5.66, 0, 0.]);
+p = np.array([2., 0,0 ]);
+v = np.array([0, 0, .1]);
 
 #B = np.array([0., 0., 1.]);
 b = np.array([0.,0.,1.])
@@ -54,7 +54,7 @@ for time in range(duration):
     V[time,:] = v; 
 
 
-plt.plot(time,p[0])
+#plt.plot(time,p[0])
 #plt.plot(S[:,0],S[:,1],'k',linewidth=2.0); 
 plt.figure(6)
 plt.axes().set_aspect('equal', 'datalim')

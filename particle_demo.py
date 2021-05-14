@@ -133,7 +133,7 @@ def VparVperp(x,y,z,Vx,Vy,Vz): #retrns Vpar and Vperp from 6 inputs
 
 #convert intital conditions to pitch angle, azimuth angle(phase?) magnetic moment and energy
 #postion L shell and 2 angles
-
+@njit()
 def car2ctd(x0,y0,z0,Vx0,Vy0,Vz0): #doesnt work with vector lists. 
     
     T = .5 * m *( np.power(Vx0,2) + np.power(Vy0,2) + np.power(Vz0,2) )
@@ -261,8 +261,8 @@ def main(x0,y0,z0,Vx0,Vy0,Vz0):
     
     #integrator boris method
     #boris method may care very much what dt is
-    #boris has the benifit of consercing energy, and enable the computation with a electric field
-    n = 1000
+    #boris has the benifit of conserving energy, and enables the computation with a electric field
+    n = int(accuracy/20)
     def boris():
         dt = d_t;
         mass = m
@@ -272,16 +272,21 @@ def main(x0,y0,z0,Vx0,Vy0,Vz0):
         v = np.array([Vx0,Vy0,Vz0]);
         p = np.array([x0,y0,z0]);
         
+       
+        
         @njit
         def loop(p,v):
-             
+            lon0 = np.arctan2(p[0],p[1])
             ni = int(np.floor(duration/n))
             S = np.zeros((ni,3)) 
             V = np.zeros((ni,3))
+            S[:] = np.nan
+            V[:] = np.nan
             print(S.shape)
             b = np.array([0.,0.,1.])
             E = np.array([0., 0., 0.]);
             j = 0
+            condition = False
             for i in range(duration): 
                 
                 (b[0],b[1],b[2]) = B(p[0],p[1],p[2])
@@ -298,7 +303,25 @@ def main(x0,y0,z0,Vx0,Vy0,Vz0):
                     S[j,:] = p; 
                     V[j,:] = v; 
                     j = j+1
+                
+                #checks to make sure particle has left initial region
+                lon = np.arctan2(p[0],p[1])
+                if condition == False:
+                    if lon >= np.pi/2:
+                        
+                        condition = True
                     
+                if condition == True:
+                    dlon = abs(lon - lon0)
+                    if dlon <= 1e-3:
+                        print('break')
+                        break
+                        
+                        
+              #add a condition that breaks the loop after a full shell  
+              #condition so that it does not break immediatly
+              #keep track of angle and print break
+          
             return S,V
         
         S,V = loop(p,v)
@@ -353,14 +376,13 @@ def main(x0,y0,z0,Vx0,Vy0,Vz0):
         timelabel = 'Time (Tc)'
        
         tc = t/Tc
-        
         #energy plot
         plt.clf()
         plt.figure(1)
         plt.plot(tc,T/T0)
         #plt.ylim(0,1.2)
         plt.legend(['Kinetic Energy'])
-        plt.title('Error in energy '+ filename)
+        plt.title('Error in energy '+ filename+'method_boris')
         plt.xlabel(timelabel)
         plt.ylabel('Ratio of T/T0')
         plt.savefig('ParticlePlots/' + filename + 'Energy.png' ,format = 'png')
@@ -568,15 +590,18 @@ def main(x0,y0,z0,Vx0,Vy0,Vz0):
         linef, = axf.plot3D([],[],[],'-b',lw = 1)
         ptf, = axf.plot3D([],[],[],'.k', ms = 20)
         #tpoints = np.linspace(0,50,10000)
-        tpoints = t
+        #tpoints = t
         
         
         def drawframe(n):
-            n = 10*n #keeps the frames at a reasonable ammount
+            arraysize = 10000
+            if looplimit > arraysize:
+                ni = int(looplimit/10000)
+                n = ni*n #keeps the frames at a reasonable ammount
             x = xpoints[n]
             y = ypoints[n]
             z = zpoints[n]
-            t = tpoints[n]
+            #t = tpoints[n]
             txt_title.set_text('Initial pitch angle = {0:.2f} degrees'.format(pitchangle))
             linef.set_data_3d(xpoints[0:n],ypoints[0:n],zpoints[0:n])
             ptf.set_data_3d(x,y,z)
@@ -588,7 +613,7 @@ def main(x0,y0,z0,Vx0,Vy0,Vz0):
             line3.set_data(tpoints[0:n],zpoints[0:n])
             pt3.set_data(t,z)
             '''
-            angle = (360/10000)*5*n+45 
+            angle = (360/(ni*10000))*10*n+45
             axf.view_init(30, angle)
             return (linef,ptf)
         
@@ -610,7 +635,7 @@ def particle_demo(L_shell = 2 ,
                  Kinetic_energy = 1 , # in eV/kg
                  mass = 1e-18 , #in Kg
                  charge = 5e-18 , # in coulumbs
-                 tp = 500, #time in tc ~ 50 error gets high for rk45, boris is much more accurate
+                 tp = 4e4, #time in tc ~ 50 error gets high for rk45, boris is much more accurate
                  method = 'boris',
                  _2dplots = True,
                  _3dplots = False,
@@ -656,8 +681,10 @@ def particle_demo(L_shell = 2 ,
     
     Tc = 2 *np.pi * m / (e*Bi)
     t = tp*Tc
+    global accuracy
+    accuracy = 10000
     
-    dt = Tc/1000
+    dt = Tc/accuracy
     global d_t
     d_t = dt
     
@@ -668,12 +695,11 @@ def particle_demo(L_shell = 2 ,
     main(x,y,z,Vx,Vy,Vz)
 
 
-
 #for j in [90,60,45,30,0]:
 for j in [45]: # generates plots with different intial pitch angles
     global filename 
     filename = 'pitch{0}'.format(j,)
-    particle_demo(pitch =j,_3dplots=False,fft = False, method = 'boris',_2dplots=(False))
+    particle_demo(pitch =j,_3dplots=False,fft = False, method = 'boris',_2dplots=(True))
   
 
 print(datetime.now() - startTime)
