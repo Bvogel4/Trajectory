@@ -43,8 +43,7 @@ Vz0 = 0
 '''
 
 @njit()
-def B(x,y,z):
-     #magnetic field of a dipole
+def B(x,y,z): #magnetic field of a dipole or any other arbitary magnetic field
      M = 100 #magnetic moment M = 8x10^22 \A m^2 for earth
      
      r = np.sqrt(np.power(x,2) + np.power(y,2) +np.power(z,2))
@@ -61,6 +60,7 @@ def B(x,y,z):
      
      
 #U = [x,y,z,Vx,Vy,Vz]
+#differenitaL equation that needs to be solved for
 def dUdt(t,U): 
     [x,y,z,Vx,Vy,Vz] = U
     (Bx,By,Bz) = B(x,y,z)
@@ -80,15 +80,15 @@ def dUdt(t,U):
     return U[3] , U[4], U[5], dVxdt, dVydt, dVzdt
 
 
-def cartesiantoLshell(x,y,z):
+def cartesiantoLshell(x,y,z): # converts cartesian coords to L-shell
     r = np.sqrt(np.power(x,2) + np.power(y,2) +np.power(z,2))
-    r = r/Re #converts r to be in earth radii
+    r = r/Re #converts r to be in earth radii : currently not in use
     lambda0 = np.arctan2(z, np.sqrt(x**2 + y**2))
     denum = np.cos(lambda0)**2
     L = r/denum
     return L, lambda0
 
-def Bnormal(Bx,By,Bz):
+def Bnormal(Bx,By,Bz): # normalizes magnetic field to find direction, used in other coord systems
     BdotB = Bx*Bx+By*By+Bz*Bz
     #print(BdotB)
     f = np.sqrt(BdotB)      # for large r TypeError: loop of ufunc does not support argument 0 of type float which has no callable sqrt method
@@ -131,7 +131,7 @@ def VparVperp(x,y,z,Vx,Vy,Vz): #retrns Vpar and Vperp from 6 inputs
     
   #trajectory- (x,y,z)=(%.1f,%.1f,%.1f); (vx,vy,vz)=(%.1f,%.1f,%.1f) GSM
 
-#convert intital conditions to pitch angle, azimuth angle(phase?) magnetic moment and energy
+#converts Cartesion to more convientent to a more convienent system
 #postion L shell and 2 angles
 @njit()
 def car2ctd(x0,y0,z0,Vx0,Vy0,Vz0): #doesnt work with vector lists. 
@@ -171,7 +171,7 @@ def car2ctd(x0,y0,z0,Vx0,Vy0,Vz0): #doesnt work with vector lists.
  
     return T, math.degrees(alpha), math.degrees(phase), L, math.degrees(longitude), math.degrees(latitude)
 
-
+#converts back to cartesian
 def ctd2car(pitch, phase, Kinetic_energy, Lshell, latitude, longitude):
     r = Lshell* np.power(np.cos(latitude),2)
     #print(r)
@@ -236,8 +236,7 @@ def main(x0,y0,z0,Vx0,Vy0,Vz0):
     
     #integrator scipy
     #time length and accuracy ( scipydoes not care about dt too much)
-   
-    
+
     dt = d_t
     tfinal = t_runtime
     
@@ -260,9 +259,12 @@ def main(x0,y0,z0,Vx0,Vy0,Vz0):
         return xline,yline,zline,Vx,Vy,Vz
     
     #integrator boris method
-    #boris method may care very much what dt is
+    #boris method cares very much what dt is
     #boris has the benifit of conserving energy, and enables the computation with a electric field
-    n = int(accuracy/20)
+    #but is inaccuarte at low pitch angles (following the magnetic field lines)
+    n = int(accuracy/20) #allows for more precise computation withough storing all the values/ saves ram
+    #tied to accuracy parameter so that points per tc remains constant at 20 points per loop 
+    #increase denominator for more points per loop
     def boris():
         dt = d_t;
         mass = m
@@ -271,27 +273,29 @@ def main(x0,y0,z0,Vx0,Vy0,Vz0):
        
         v = np.array([Vx0,Vy0,Vz0]);
         p = np.array([x0,y0,z0]);
-        
-       
-        
         @njit
         def loop(p,v):
             lon0 = np.arctan2(p[1],p[0])
+            #only want to compute 1 shell, so create conditions for comparison when 1 shell has been completed
             ni = int(np.floor(duration/n))
             S = np.zeros((ni,3)) 
             V = np.zeros((ni,3))
+            #fill with nans so that unallocated values can easily be pruned if necassary
+            #matplotlib automatically ignores nan values
             S[:] = np.nan
             V[:] = np.nan
             print(S.shape)
-            b = np.array([0.,0.,1.])
+            #initialize B and E fields
+            b = np.array([0.,0.,1.]) # doesnt really matter as it gets replaced by dipole later
             E = np.array([0., 0., 0.]);
             j = 0
-            initial = True
+            initial = True # variable that tracks when the particle has left the initial region
             overlap = .02 # overlap in the shell in rads
             for i in range(duration): 
                 
                 (b[0],b[1],b[2]) = B(p[0],p[1],p[2])
                 
+                #boris method calculation
                 t = charge / mass * b * 0.5 * dt;
                 s = 2. * t / (1. + t*t);
                 v_minus = v + charge / (mass ) * E * 0.5 * dt;
@@ -311,18 +315,13 @@ def main(x0,y0,z0,Vx0,Vy0,Vz0):
                     if lon >= 1/4*np.pi:
                         #print('condition')
                         initial = False
-                    
+                #stops the loop if the particle has completed a shell
                 if initial == False:
                     dlon = abs(lon - lon0 - overlap)
                     if dlon <= 1e-4:
-                        print(lon0,lon)
+                        #print(lon0,lon)
                         #print('break')
                         break
-                        
-                        
-              #add a condition that breaks the loop after a full shell  
-              #condition so that it does not break immediatly
-              #keep track of angle and print break
           
             return S,V
         
@@ -354,6 +353,8 @@ def main(x0,y0,z0,Vx0,Vy0,Vz0):
     
     
     #for vtk export
+    #xline[~np.isnan(xline) removes nan values, paraview can't work with nans
+    #should probably just do this after collecting lists, so I don't have to worry about them later for some other function
     points = np.column_stack([xline[~np.isnan(xline)],yline[~np.isnan(yline)],zline[~np.isnan(zline)]])
     tmpdir = tempfile.gettempdir()
     out_filename = (filename + 'particle_motion.vtk')
@@ -367,15 +368,13 @@ def main(x0,y0,z0,Vx0,Vy0,Vz0):
                     title='Title',
                     ftype=ftype,
                     debug = False)
+    #2d Plotting: Energies, position, L-shell,x-y plot
     if twodplots == True:
-        '''
-        2D Plots:
-        '''
         
         t = dt*np.linspace(0,looplimit -1,int(np.floor(looplimit/n)))
         Tc = 2 *np.pi * m / (e*Bi)
         timelabel = 'Time (Tc)'
-       
+       # more convient to plot in time scales involving gyro radius
         tc = t/Tc
         #energy plot
         plt.clf()
@@ -450,7 +449,7 @@ def main(x0,y0,z0,Vx0,Vy0,Vz0):
         
     
        
-        
+# current implentaion is broken think it has to with list sizes
     if _fft == True:
         phaselist = []
         lonlist = []
@@ -531,7 +530,7 @@ def main(x0,y0,z0,Vx0,Vy0,Vz0):
         plt.show()
         
     
-    if threedplots == True: # 3d animation
+    if threedplots == True: # 3d animation, very resource intensive and limited length
         xpoints = xline
         ypoints = yline
         zpoints = zline
@@ -627,7 +626,7 @@ def main(x0,y0,z0,Vx0,Vy0,Vz0):
         
 
 
-
+#default inititial condtions
 def particle_demo(L_shell = 2 ,
                  latitude = 0, #all angles in degrees
                  longitude = 0 , 
@@ -645,7 +644,7 @@ def particle_demo(L_shell = 2 ,
     #convert all angles to degrees
     
   
-    
+    # need to use global variables for constants that need to be in all defined functions
     global pitchangle
     pitchangle = pitch
     latitude = math.radians(latitude)
@@ -673,16 +672,17 @@ def particle_demo(L_shell = 2 ,
     e = charge
     Kinetic_energy = Kinetic_energy * 1.602176565e-19
     
+    #converts initian conditions to cartesian
     x,y,z,Vx,Vy,Vz = ctd2car(pitch, phase, Kinetic_energy, L_shell, latitude, longitude)
     #print('initial condtion after converesion = ', x,y,z,Vx,Vy,Vy)
     
-    global Bi 
+    global Bi # intital B field for gyro time calculation
     Bix,Biy,Biz = B(x,y,z)
     Bi = np.sqrt(Bix**2 + Biy**2 + Biz**2)
     
     Tc = 2 *np.pi * m / (e*Bi)
     t = tp*Tc
-    global accuracy
+    global accuracy # points per Tc
     accuracy = 1000
     
     dt = Tc/accuracy
@@ -703,7 +703,7 @@ for j in [45]: # generates plots with different intial pitch angles
     particle_demo(pitch =j,_3dplots=False,fft = False, method = 'boris',_2dplots=(True))
   
 
-print(datetime.now() - startTime)
+print(datetime.now() - startTime) # time it takes code to run
     
 '''
     #export to csv
