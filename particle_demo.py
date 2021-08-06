@@ -17,6 +17,7 @@ import os
 from vtk_export import vtk_export
 import tempfile
 
+
 from numba import njit
 
 #creates new folder for animation if it doesn't already exist
@@ -41,6 +42,55 @@ Vx0 = 0
 Vy0 = 1
 Vz0 = 0
 '''
+
+@njit
+def cartesian_to_spherical(x, y, z, v_x, v_y, v_z): 
+    """
+    Utility function (jitted) to convert cartesian to spherical.
+    This function should eventually result in Coordinate Transformation Graph!
+    """
+    hxy = np.hypot(x, y)
+    r = np.hypot(hxy, z)
+    theta = np.arctan2(hxy, z)
+    phi = np.arctan2(y, x)
+    n1 = x ** 2 + y ** 2
+    n2 = n1 + z ** 2
+    v_r = (x * v_x + y * v_y + z * v_z) / np.sqrt(n2)
+    v_th = (z * (x * v_x + y * v_y) - n1 * v_z) / (n2 * np.sqrt(n1))
+    v_p = -1 * (v_x * y - x * v_y) / n1
+
+    return r, theta, phi, v_r, v_th, v_p
+
+
+@njit
+def spherical_to_cartesian(r, th, p, v_r, v_th, v_p):
+    """
+    Utility function (jitted) to convert spherical to cartesian.
+    This function should eventually result in Coordinate Transformation Graph!
+    """
+    x = r * np.cos(p) * np.sin(th)
+    y = r * np.sin(p) * np.sin(th)
+    z = r * np.cos(th)
+    v_x = (
+        np.sin(th) * np.cos(p) * v_r
+        - r * np.sin(th) * np.sin(p) * v_p
+        + r * np.cos(th) * np.cos(p) * v_th
+    )
+    v_y = (
+        np.sin(th) * np.sin(p) * v_r
+        + r * np.cos(th) * np.sin(p) * v_th
+        + r * np.sin(th) * np.cos(p) * v_p
+    )
+    v_z = np.cos(th) * v_r - r * np.sin(th) * v_th
+    '''
+    a_x = 0
+    a_y = 0
+    a_z = (a_r * np.cos(th) - v_r * np.sin(th) 
+           - ( v_r * np.sin(th) + r * v_th**2 * np.cos(th) + r*np.sin(th) * a_th))
+    '''
+
+    return x, y, z, v_x, v_y, v_z
+
 
 @njit()
 def B(x,y,z): #magnetic field of a dipole or any other arbitary magnetic field
@@ -75,10 +125,20 @@ def dUdt(t,U):
     dVzdt = e/m* (Vx*By - Vy*Bx)
     U = [x,y,z,Vx,Vy,Vz]
     
-    
-    
     return U[3] , U[4], U[5], dVxdt, dVydt, dVzdt
+#dondimensional dipole in spherical
+#note dimensionless r and t
+def dUdt_2(T,S):
+    [R,theta,phi,v_r,v_th,v_p] = S
+    #dimesnionless form in sperical coords
+    #D = (cos(theta, sin(theta)))
+    #dV/dtau = (VxU) / R^3
+    U = np.array([2*np.cos(theta),np.sin(theta),0])
+    V = np.array([v_r,v_th,v_p])
+        
+    DvDT = np.cross(V,U) / R**3
 
+    return S[3] , S[4], S[5] , DvDT[0], DvDT[1], DvDT[2]
 
 def cartesiantoLshell(x,y,z): # converts cartesian coords to L-shell
     r = np.sqrt(np.power(x,2) + np.power(y,2) +np.power(z,2))
@@ -242,6 +302,8 @@ def main(x0,y0,z0,Vx0,Vy0,Vz0):
     
     looplimit = int(tfinal/dt)
     looplimit = looplimit +1
+
+
     def rk45():
         t = dt*np.linspace(0,looplimit -1,looplimit)
         t_span = (0.0, tfinal) # Provide solution over this time range
@@ -256,8 +318,41 @@ def main(x0,y0,z0,Vx0,Vy0,Vz0):
         Vx = soln.y[3]
         Vy = soln.y[4]
         Vz = soln.y[5]
-        return xline,yline,zline,Vx,Vy,Vz
-    
+        
+        return xline,yline,zline,Vx,Vy,Vz,t
+#nod dimensional function to solve in spherical
+    def rk45_nd():
+        T = dt*np.linspace(0,looplimit -1,looplimit)
+        T_span = (0.0, tfinal) # Provide solution over this time range
+        
+     
+        S0 = np.zeros(6)
+        S0[0] ,S0[1], S0[2], S0[3], S0[4] ,S0[5] = cartesian_to_spherical(x0,y0,z0,Vx0,Vy0,Vz0)
+        S0[0] = S0[0]/Re
+        t_eval = dt*np.linspace(0, looplimit -1, looplimit)
+        soln = solve_ivp( dUdt_2, T_span, S0, method='RK45', t_eval=t_eval)
+        
+        
+        rline =     soln.y[0]
+        thetaline = soln.y[1]
+        philine =   soln.y[2]
+        Vr =        soln.y[3]
+        Vth =       soln.y[4]
+        Vphi =      soln.y[5]
+        
+        (xline,yline, zline, Vx, Vy, Vz) = spherical_to_cartesian(rline,thetaline,philine,Vr,Vth,Vphi)
+        
+        
+        u0 = 1.25663706212e-6
+        #B0 = M * u0 / (4*pi*Re^3) M = dipole moment
+        M = 100
+        B0 = M * u0 / (4*np.pi*Re**3)
+        #tau = Mass / ( q * B0)
+        tau = m / (e * B0)
+        t = tau * T
+        
+        return xline,yline,zline,Vx,Vy,Vz,t
+
     #integrator boris method
     #boris method cares very much what dt is
     #boris has the benifit of conserving energy, and enables the computation with a electric field
@@ -280,7 +375,7 @@ def main(x0,y0,z0,Vx0,Vy0,Vz0):
             ni = int(np.floor(duration/n))
             S = np.zeros((ni,3)) 
             V = np.zeros((ni,3))
-            #fill with nans so that unallocated values can easily be pruned if necassary
+            #fill with nans so that unallocated values can easily be pruned
             #matplotlib automatically ignores nan values
             S[:] = np.nan
             V[:] = np.nan
@@ -335,9 +430,11 @@ def main(x0,y0,z0,Vx0,Vy0,Vz0):
         return xline,yline,zline,Vx,Vy,Vz
     
     if integrator == 'rk45':
-        xline,yline,zline,Vx,Vy,Vz = rk45()
+        xline,yline,zline,Vx,Vy,Vz,t = rk45()
     if integrator == 'boris':
         xline,yline,zline,Vx,Vy,Vz = boris()
+    if integrator == 'nd':
+        xline,yline,zline,Vx,Vy,Vz,t = rk45_nd()
     
     
     # kinetic energy over time should be constant, variances are due to error
@@ -362,7 +459,7 @@ def main(x0,y0,z0,Vx0,Vy0,Vz0):
     ftype = 'ASCII'
     connectivity = {'LINES' : np.array([points.shape[0]])}
 
-    vtk_export(out_filename, points,
+    vtk_export(out_filename, points, #should points be lines?
                     dataset = 'POLYDATA',
                     connectivity = connectivity,
                     title='Title',
@@ -370,19 +467,21 @@ def main(x0,y0,z0,Vx0,Vy0,Vz0):
                     debug = False)
     #2d Plotting: Energies, position, L-shell,x-y plot
     if twodplots == True:
+        if integrator == 'boris':
+            t = dt*np.linspace(0,looplimit -1,int(np.floor(looplimit/n)))
         
-        t = dt*np.linspace(0,looplimit -1,int(np.floor(looplimit/n)))
         Tc = 2 *np.pi * m / (e*Bi)
         timelabel = 'Time (Tc)'
        # more convient to plot in time scales involving gyro radius
-        tc = t/Tc
+        tc = t
+        #tc = t/Tc
         #energy plot
         plt.clf()
         plt.figure(1)
         plt.plot(tc,T/T0)
         #plt.ylim(0,1.2)
         plt.legend(['Kinetic Energy'])
-        plt.title('Error in energy '+ filename+'method_boris')
+        plt.title('Error in energy '+ filename+'method_' + integrator)
         plt.xlabel(timelabel)
         plt.ylabel('Ratio of T/T0')
         plt.savefig('ParticlePlots/' + filename + 'Energy.png' ,format = 'png')
@@ -627,7 +726,7 @@ def main(x0,y0,z0,Vx0,Vy0,Vz0):
 
 
 #default inititial condtions
-def particle_demo(L_shell = 2 ,
+def particle_demo(L_shell = 10 ,
                  latitude = 0, #all angles in degrees
                  longitude = 0 , 
                  pitch = 90  ,
@@ -635,7 +734,7 @@ def particle_demo(L_shell = 2 ,
                  Kinetic_energy = 1 , # in eV/kg
                  mass = 1e-18 , #in Kg
                  charge = 5e-18 , # in coulumbs
-                 tp = 4e4, #time in tc ~ 50 error gets high for rk45, boris is much more accurate
+                 tp = 4e-1, #time in tc ~ 50 error gets high for rk45, boris is much more accurate
                  method = 'boris',
                  _2dplots = True,
                  _3dplots = False,
@@ -660,8 +759,11 @@ def particle_demo(L_shell = 2 ,
     
     global _fft
     _fft = fft
+    
     global Re
     Re = 1
+    #Re = 6.37e6 # radius of earth in m
+    
     global m 
     m = mass #mass
     
@@ -683,7 +785,7 @@ def particle_demo(L_shell = 2 ,
     Tc = 2 *np.pi * m / (e*Bi)
     t = tp*Tc
     global accuracy # points per Tc
-    accuracy = 1000
+    accuracy = 100000
     
     dt = Tc/accuracy
     global d_t
@@ -700,7 +802,7 @@ def particle_demo(L_shell = 2 ,
 for j in [45]: # generates plots with different intial pitch angles
     global filename 
     filename = 'pitch{0}'.format(j,)
-    particle_demo(pitch =j,_3dplots=False,fft = False, method = 'boris',_2dplots=(True))
+    particle_demo(pitch =j,_3dplots=False,fft = False, method = 'nd',_2dplots=(True))
   
 
 print(datetime.now() - startTime) # time it takes code to run
