@@ -131,7 +131,7 @@ def dUdt(t,U):
 def dUdt_2(T,S):
     [R,theta,phi,v_r,v_th,v_p] = S
     #dimesnionless form in sperical coords
-    #D = (cos(theta, sin(theta)))
+    #U = (cos(theta, sin(theta)))
     #dV/dtau = (VxU) / R^3
     U = np.array([2*np.cos(theta),np.sin(theta),0])
     V = np.array([v_r,v_th,v_p])
@@ -187,9 +187,7 @@ def VparVperp(x,y,z,Vx,Vy,Vz): #retrns Vpar and Vperp from 6 inputs
     return Vparrallel, Vperpendicular ,V_perp # last value is a vector, first 2 are scalar magnitudes
 
 
-        
-    
-  #trajectory- (x,y,z)=(%.1f,%.1f,%.1f); (vx,vy,vz)=(%.1f,%.1f,%.1f) GSM
+#trajectory- (x,y,z)=(%.1f,%.1f,%.1f); (vx,vy,vz)=(%.1f,%.1f,%.1f) GSM
 
 #converts Cartesion to more convientent to a more convienent system
 #postion L shell and 2 angles
@@ -322,7 +320,9 @@ def main(x0,y0,z0,Vx0,Vy0,Vz0):
         return xline,yline,zline,Vx,Vy,Vz,t
 #nod dimensional function to solve in spherical
     def rk45_nd():
-        T = dt*np.linspace(0,looplimit -1,looplimit)
+        T = dt*np.linspace(0,looplimit -1,looplimit)            #need to find appropiate dT and T ranges
+        #maybe I sshould make new functions to transfrom to and from dimensionless form?
+        
         T_span = (0.0, tfinal) # Provide solution over this time range
         
      
@@ -734,7 +734,7 @@ def particle_demo(L_shell = 10 ,
                  Kinetic_energy = 1 , # in eV/kg
                  mass = 1e-18 , #in Kg
                  charge = 5e-18 , # in coulumbs
-                 tp = 4e-1, #time in tc ~ 50 error gets high for rk45, boris is much more accurate
+                 tp = 50, #time in tc ~ 50 error gets high for rk45, boris is much more accurate
                  method = 'boris',
                  _2dplots = True,
                  _3dplots = False,
@@ -785,7 +785,7 @@ def particle_demo(L_shell = 10 ,
     Tc = 2 *np.pi * m / (e*Bi)
     t = tp*Tc
     global accuracy # points per Tc
-    accuracy = 100000
+    accuracy = 1000
     
     dt = Tc/accuracy
     global d_t
@@ -802,7 +802,7 @@ def particle_demo(L_shell = 10 ,
 for j in [45]: # generates plots with different intial pitch angles
     global filename 
     filename = 'pitch{0}'.format(j,)
-    particle_demo(pitch =j,_3dplots=False,fft = False, method = 'nd',_2dplots=(True))
+    particle_demo(pitch =j,_3dplots=False,fft = False, method = 'rk45',_2dplots=(True))
   
 
 print(datetime.now() - startTime) # time it takes code to run
