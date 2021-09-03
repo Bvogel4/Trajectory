@@ -41,29 +41,7 @@ def B_nd_dipole(P): #cartesian nd coords
 #
 #note dimensionless position, velocity and t
 #needs to be in cartesian before passing to integrator
-def dUdt_nd(T,U):
-    P = U[0:3] #position
-    V = U[3:6] # velocity
-    x,y,z = P
-    
-    B = B_nd_dipole(P[0],P[1],P[2]) # magnetic function (currently in cartesian)
-    Bx,By,Bz = B 
-    Vx,Vy,Vz = V
-    DvDT = np.cross(V,B) # note cross only works in cartesian Does this work with the lists of values?
-    '''
-    #let me try explit defination of cross product. don't think that's the problem
-    #dVx/dt = e/m*(VyBz - VzBy)
-    dVxdt = (Vy*Bz - Vz*By)
-    
-    #dVy/dt = e/m *(VzBx - VxBz)
-    dVydt = (Vz*Bx - Vx*Bz)
-    
-    #dVz/dt = e/m* (VxBy - VyBx)
-    dVzdt =  (Vx*By - Vy*Bx)
-    U = [x,y,z,Vx,Vy,Vz]
-    '''
 
-    return U[3] , U[4], U[5] , DvDT[0], DvDT[1], DvDT[2] # dVxdt, dVydt, dVzdt
 #legacy
 '''
 def dUdt(t,U): 
@@ -108,14 +86,39 @@ def rk45(dt,
         return xline,yline,zline,Vx,Vy,Vz,t
 #nod dimensional function to solve in spherical
 '''
+@njit
+def dUdt_nd(T,U):
+    #P = U[0],U[1],U[2] #position
+    V = U[3],U[4],U[5] # velocity
+    
+    Bx,By,Bz = B_nd_dipole(U[0],U[1],U[2]) # magnetic field function (currently in cartesian)  numba points here
+    B = Bx,By,Bz 
+    Vx,Vy,Vz = V
+    DvDT = np.cross(V,B) # note cross only works in cartesian 
+    '''
+    x,y,z = P
+    #let me try explit defination of cross product. don't think that's the problem
+    #dVx/dt = e/m*(VyBz - VzBy)
+    dVxdt = (Vy*Bz - Vz*By)
+    
+    #dVy/dt = e/m *(VzBx - VxBz)
+    dVydt = (Vz*Bx - Vx*Bz)
+    
+    #dVz/dt = e/m* (VxBy - VyBx)
+    dVzdt =  (Vx*By - Vy*Bx)
+    U = [x,y,z,Vx,Vy,Vz]
+    '''
+
+    return U[3] , U[4], U[5] , DvDT[0], DvDT[1], DvDT[2] # dVxdt, dVydt, dVzdt
+
 def rk45_nd(dT,
             tfinal,
             S0):
     #I have an extra, uneeded parameter^
-    
-    
+    print('S0',S0)
+    n = int(tfinal/dT)
 
-    T = dT*np.linspace(0,tfinal,int(tfinal/dT))#need to find appropiate dT and T ranges
+    T = dT*np.linspace(0, n,n)#need to find appropiate dT and T ranges
     #maybe I sshould make new functions to transfrom to and from dimensionless form?
     
     T_span = (T[0],T[-1]) # Provide solution over this time range
@@ -143,6 +146,87 @@ def rk45_nd(dT,
     t = tau * T
     '''
     return xline,yline,zline,Vx,Vy,Vz,T
+
+@njit
+def euler_cromer(dT,
+            tfinal,
+            S0):
+    
+    n = int(tfinal/dT)
+    w = np.zeros((n,6))
+    
+    w[0] = S0
+    #print(w)
+    T = np.linspace(0,n,n) * dT
+    for j in range(0,n-1):
+        dw =  np.array(dUdt_nd(dT,w[j]))  * dT
+        
+        
+        
+        w[j+1] = w[j] + dw 
+    '''
+    #xline,yline,zline,Vx,Vy,Vz = w[:,0],w[:,1],w[:,2],w[:,3],w[:,4],w[:,5]
+    
+    xline =  w[:,0]
+    yline =  w[:,1]
+    zline =  w[:,2]
+    Vx =  w[:,3]
+    Vy =  w[:,4]
+    Vz =  w[:,5]
+    '''
+    return w[:,0],w[:,1],w[:,2],w[:,3],w[:,4],w[:,5],T
+
+
+@njit
+def rk4_step(w, dt, f):
+    h = dt
+    k1 = h*f(w)
+    k2 = h*f(w+k1/2)
+    k3 = h*f(w+k2/2)
+    k4 = h*f(w+k3)
+    w = w + (k1 + 2*k2 + 2*k3+ k4)/6
+
+    return w
+
+@njit
+def rk4(dT,
+            tfinal,
+            S0):
+    
+    n = int(tfinal/dT)
+    w = np.zeros((n,6))
+    
+    w[0] = S0
+    dw = S0
+    #print(w)
+    T = np.linspace(0, tfinal,n) * dT
+    for j in range(0,n-1):
+        
+       w[j] = rk4(w[j-1],dT,dUdt_nd)
+         
+
+    '''
+    #xline,yline,zline,Vx,Vy,Vz = w[:,0],w[:,1],w[:,2],w[:,3],w[:,4],w[:,5]
+    
+    xline =  w[:,0]
+    yline =  w[:,1]
+    zline =  w[:,2]
+    Vx =  w[:,3]
+    Vy =  w[:,4]
+    Vz =  w[:,5]
+    '''
+    return w[:,0],w[:,1],w[:,2],w[:,3],w[:,4],w[:,5],T
+
+
+
+
+
+
+
+
+# add euler method
+#add case for B constant
+#
 
 #integrator boris method
 #boris method cares very much what dt is

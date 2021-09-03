@@ -7,7 +7,7 @@ Created on Wed Aug 11 20:35:34 2021
 
 #lowest level file, do not add fucntion calls from others files
 import numpy as np
-from numba import njit
+from numba import njit,jit
 import math
 '''
 def B(x,y,z): #magnetic field of a dipole or any other arbitary magnetic field
@@ -24,15 +24,23 @@ def B(x,y,z): #magnetic field of a dipole or any other arbitary magnetic field
      return Bx,By,Bz 
      #return 0,0,1 # test case with constant B vs known solution
      '''
-def B(x,y,z): 
-    P = np.array([x,y,z])
-    r2 = x*x + y*y + z*z
-    B_dipole = np.array([ 3*P[0]*P[2] , 3*P[1]*P[2] , ( 3*P[2]-r2 ) ]) / np.power(r2,5/2)
-
-    return B_dipole[0],B_dipole[1],B_dipole[2]
-    #return 0,0,100000
-
 @njit
+def B(x,y,z): # axis is the direction of the dipole moment
+    #P = np.array(x,y,z)  # numba points here
+    r2 = x*x + y*y + z*z
+    d = np.power(r2,5/2)
+    #B_dipole = np.array([  ,  ,  ]) / 
+    Bx = 3*x*z /d
+    By = 3*y*z /d 
+    Bz = ( 3*z**2 -r2 )/d
+    
+    #B_dipole = np.array([ 3*P[0]*P[2] , 3*P[1]*P[2] , (r2 - 3*P[2]**2 ) ]) / np.power(r2,5/2)
+    #print(B_dipole,P)
+    return Bx,By,Bz
+    #return B_dipole[0],B_dipole[1],B_dipole[2]
+    #return 0,0,1
+
+@jit
 def B_nd_dipole(S): #spherica nd coords 
     r_bar,th,phi = S[0:3]
     B_dipole = np.array[np.cos(th),np.sin(th),0] / r_bar**3
@@ -184,8 +192,8 @@ def car2ctd(x0,y0,z0,Vx0,Vy0,Vz0,m,Re): #doesnt work with vector lists.  m = mas
     return T,  math.degrees(alpha), math.degrees(phase), L, math.degrees(longitude), math.degrees(latitude)
 
 #converts back to cartesian
-def ctd2car(pitch, phase, Kinetic_energy, Lshell, latitude, longitude,m,re):
-    r = Lshell* np.power(np.cos(latitude),2) * re
+def ctd2car(pitch, phase, Kinetic_energy, Lshell, latitude, longitude, m, Re):
+    r = Lshell* np.power(np.cos(latitude),2) * Re
     #print(r)
     phi = np.pi/2 - latitude
     
