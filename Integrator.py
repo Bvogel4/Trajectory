@@ -91,10 +91,12 @@ def boris(dT, #compute time step
         n = int(1/sampling/dT) # how many values to store base on sampling and dt
         #print(1/sampling /dT)
         loops = int(duration/dT)
+        #without storing every point array size can be reduced
         arraysize = int(np.floor(loops/n) )
         S = np.zeros((arraysize,3)) 
         V = np.zeros((arraysize,3)) 
         T = np.zeros(arraysize)
+        #fill with nans so that unused array slots aren't plotted
         T[:] = np.nan
         S[:] = np.nan
         V[:] = np.nan

@@ -239,11 +239,7 @@ def ctd2car(pitch, phase, Kinetic_energy, Lshell, latitude, longitude, m, Re):
     Vperpx = vhat[0]*V_perp
     Vperpy = vhat[1]*V_perp
     Vperpz = vhat[2]*V_perp
-    ''' old code for hardcode phase
-    Vperpx = rperpx*V_perp
-    Vperpy = rperpy*V_perp
-    Vperpz = rperpz*V_perp
-    '''
+
     Vx = Vperpx + Vparx
     Vy = Vperpy + Vpary
     Vz = Vperpz + Vparz

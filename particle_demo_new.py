@@ -11,44 +11,51 @@ import Transformations as trsfrm
 import Integrator as Integrator
 import plots
 import math
-Re = 6.37e6 # radius of earth in m
+Re = 6.37e6
+#Re = 1 # radius of earth in m
 M = 8e22 #magnetic moment M = 8x10^22 \A m^2 for earth
 u0 = 1.25663706212e-6
 #for j in [90,60,45,30,0]:
     # i could add multithreading to this step for multiple generations
-for pitchangle in [90]: # generates plots with different intial pitch angles
+for pitchangle in [45]: # generates plots with different intial pitch angles
     filename = 'pitch{0}'.format(pitchangle)
-    L_shell = 1 
+    L_shell = 4
     latitude = 0 #all angles in degrees
-    longitude = 0 
-    phase = 0 
-    Kinetic_energy = 1  # in eV/kg
-    mass = 1e-18  #in Kg
+    longitude = 0
+    phase = 90
+    Kinetic_energy = 3e10 # in eV/kg
+    mass = 1e-16  #in Kg
     charge = 5e-18  # in coulumbs
-    tp = 60000#time in tc ~ 50 error gets high for rk45, boris is much more accurate
-    #1 tp corresponds to the time to go 1 radian around the gyro
-    accuracy = 1e3
+    tp = 2000000#time in tc ~ 50 error gets high for rk45, boris is much more accurate
+    #1 tp corresponds to the time to go 1 radian around the gyro at L = 1
+    accuracy = 1e2
     sampling = 1 # points per tc 6tc ~ around 
     method = 'boris'
     _2dplots = True
     # internally all angles should be in radians
-    latitude = math.radians(latitude) #all angles in degrees
+    latitude = math.radians(latitude) 
     longitude = math.radians(longitude) 
     phase = math.radians(phase) 
-    pitch = math.radians(pitch)
+    pitch = math.radians(pitchangle)
+    
+    Kinetic_energy = Kinetic_energy * 1.602176565e-19
     
     #convert initial conditons to cartesian
+    
     #is ctd2car working right? I don't think it is
-    #!!!! need to fix, but need to fix integrator first
-    #think Re is a missing paramter
-    #x0,y0,z0, vx0,vy0,vz0 = trsfrm.ctd2car(pitchangle, phase, Kinetic_energy, L_shell, latitude, longitude, mass,Re)
+    #I think it's mostly working, I'll cross check with kyle to make sure
+    #L value is too large weirdly
+    
+    #missing parameters that I need to convert into something somewhere
+    #charge, mass? , dipole moment
+    x0,y0,z0, vx0,vy0,vz0 = trsfrm.ctd2car(pitch, phase, Kinetic_energy, L_shell, latitude, longitude, mass, Re)
     #test = trsfrm.car2ctd(x0, y0, z0, vx0, vy0, vz0, mass, Re)
     #print(test)
-    #S0 = np.array([x0, y0, z0, vx0, vy0, vz0])
-    
+    S0 = np.array([x0, y0, z0, vx0, vy0, vz0])
+    S0 = S0/Re
     #print(S0)
     #non dimenionlize r. t is already nd
-    S0 = np.array([1,0.,0.,0.,.01,.01]) # temp override of initial conditions
+    #S0 = np.array([1,0.,0.,0.,.01,.01]) # temp override of initial conditions
     dT = 1/accuracy
     Bc = u0*M/(4*np.pi*Re**3)
     if method == 'rk45':
