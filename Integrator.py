@@ -10,82 +10,7 @@ from scipy.integrate import solve_ivp
 
 import Transformations as trsfrm
 from Transformations import B as B_nd_dipole
-'''
-def B(x,y,z): #magnetic field of a dipole or any other arbitary magnetic field
-     M = 100 #magnetic moment M = 8x10^22 \A m^2 for earth
-     
-     r = np.sqrt(np.power(x,2) + np.power(y,2) +np.power(z,2))
-     
-    #bx = 3M xz/r5  M is a constant
-     Bx = 3*M*x*z/np.power(r,5)
-     
-     By = 3*M*y*z/np.power(r,5)
-     Bz = M*(3*np.power(z,2) - np.power(r,2))/np.power(r,5)
-    
-     return Bx,By,Bz 
-     #return 0,0,1 # test case with constant B vs known solution
-     
-def B_nd_dipoleS(S): #spherical nd coords 
-    r_bar,th,phi = S[0:3]
-    B_dipole = np.array([2*np.cos(th),np.sin(th),0]) / r_bar**3
 
-    #B[0],B[1],B[2]
-    return B_dipole
-
-def B_nd_dipole(P): #cartesian nd coords 
-    r2 = (np.dot(P,P))
-    B_dipole = np.array([ 3*P[0]*P[2] , 3*P[1]*P[2] , ( 3*P[2]-r2 ) ]) / np.power(r2,5/2)
-
-    return B_dipole
-'''
-#
-#note dimensionless position, velocity and t
-#needs to be in cartesian before passing to integrator
-
-#legacy
-'''
-def dUdt(t,U): 
-    [x,y,z,Vx,Vy,Vz] = U
-    (Bx,By,Bz) = B(x,y,z)
-    
-    #dVx/dt = e/m*(VyBz - VzBy)
-    dVxdt = e/m*(Vy*Bz - Vz*By)
-    
-    #dVy/dt = e/m *(VzBx - VxBz)
-    dVydt = e/m *(Vz*Bx - Vx*Bz)
-    
-    #dVz/dt = e/m* (VxBy - VyBx)
-    dVzdt = e/m* (Vx*By - Vy*Bx)
-    U = [x,y,z,Vx,Vy,Vz]
-    
-    return U[3] , U[4], U[5], dVxdt, dVydt, dVzdt
-'''
-
-
-#old
-'''
-def rk45(dt,
-         looplimit,
-         tfinal,
-         P):
-        (x0,y0,z0,Vx0,Vy0,Vz0) = P
-        t = dt*np.linspace(0,looplimit -1,looplimit)
-        t_span = (0.0, tfinal) # Provide solution over this time range
-        S0 = [x0,y0,z0,Vx0,Vy0,Vz0]             # Initial conditions
-        
-        t_eval = dt*np.linspace(0, looplimit -1, looplimit)
-        soln = solve_ivp( dUdt, t_span, S0, method='RK45', t_eval=t_eval)
-        
-        xline = soln.y[0]
-        yline = soln.y[1]
-        zline = soln.y[2]
-        Vx = soln.y[3]
-        Vy = soln.y[4]
-        Vz = soln.y[5]
-        
-        return xline,yline,zline,Vx,Vy,Vz,t
-#nod dimensional function to solve in spherical
-'''
 @njit
 def dUdt_nd(T,U):
     #P = U[0],U[1],U[2] #position
@@ -95,19 +20,6 @@ def dUdt_nd(T,U):
     B = Bx,By,Bz 
     Vx,Vy,Vz = V
     DvDT = np.cross(V,B) # note cross only works in cartesian 
-    '''
-    x,y,z = P
-    #let me try explit defination of cross product. don't think that's the problem
-    #dVx/dt = e/m*(VyBz - VzBy)
-    dVxdt = (Vy*Bz - Vz*By)
-    
-    #dVy/dt = e/m *(VzBx - VxBz)
-    dVydt = (Vz*Bx - Vx*Bz)
-    
-    #dVz/dt = e/m* (VxBy - VyBx)
-    dVzdt =  (Vx*By - Vy*Bx)
-    U = [x,y,z,Vx,Vy,Vz]
-    '''
 
     return U[3] , U[4], U[5] , DvDT[0], DvDT[1], DvDT[2] # dVxdt, dVydt, dVzdt
 
@@ -135,16 +47,7 @@ def rk45_nd(dT,
     Vz = soln.y[5]
 
     
-    #should do conersions after function? no I should do it before and after calling 
-    '''
-    u0 = 1.25663706212e-6
-    #B0 = M * u0 / (4*pi*Re^3) M = dipole moment
-    M = 100
-    B0 = M * u0 / (4*np.pi*Re**3)
-    #tau = Mass / ( q * B0)
-    tau = m / (e * B0)
-    t = tau * T
-    '''
+
     return xline,yline,zline,Vx,Vy,Vz,T
 
 @njit
@@ -160,87 +63,20 @@ def euler_cromer(dT,
     T = np.linspace(0,n,n) * dT
     for j in range(0,n-1):
         dw =  np.array(dUdt_nd(dT,w[j]))  * dT
-        
-        
-        
         w[j+1] = w[j] + dw 
-    '''
-    #xline,yline,zline,Vx,Vy,Vz = w[:,0],w[:,1],w[:,2],w[:,3],w[:,4],w[:,5]
-    
-    xline =  w[:,0]
-    yline =  w[:,1]
-    zline =  w[:,2]
-    Vx =  w[:,3]
-    Vy =  w[:,4]
-    Vz =  w[:,5]
-    '''
+ 
     return w[:,0],w[:,1],w[:,2],w[:,3],w[:,4],w[:,5],T
 
-
-@njit
-def rk4_step(w, dt, f):
-    h = dt
-    k1 = h*f(w)
-    k2 = h*f(w+k1/2)
-    k3 = h*f(w+k2/2)
-    k4 = h*f(w+k3)
-    w = w + (k1 + 2*k2 + 2*k3+ k4)/6
-
-    return w
-
-@njit
-def rk4(dT,
-            tfinal,
-            S0):
-    
-    n = int(tfinal/dT)
-    w = np.zeros((n,6))
-    
-    w[0] = S0
-    dw = S0
-    #print(w)
-    T = np.linspace(0, tfinal,n) * dT
-    for j in range(0,n-1):
-        
-       w[j] = rk4(w[j-1],dT,dUdt_nd)
-         
-
-    '''
-    #xline,yline,zline,Vx,Vy,Vz = w[:,0],w[:,1],w[:,2],w[:,3],w[:,4],w[:,5]
-    
-    xline =  w[:,0]
-    yline =  w[:,1]
-    zline =  w[:,2]
-    Vx =  w[:,3]
-    Vy =  w[:,4]
-    Vz =  w[:,5]
-    '''
-    return w[:,0],w[:,1],w[:,2],w[:,3],w[:,4],w[:,5],T
-
-
-
-
-
-
-
-
-# add euler method
-#add case for B constant
-#
 
 #integrator boris method
-#boris method cares very much what dt is
-#boris has the benifit of conserving energy, and enables the computation with a electric field
+#boris method with explicit dt
+#boris has the benifit of conserving energy, and enables the computation with a electricfield - currently not enabled
 #but is inaccuarte at low pitch angles (following the magnetic field lines)
-#n = int(accuracy/20) #allows for more precise computation withough storing all the values/ saves ram
-#tied to accuracy parameter so that points per tc remains constant at 20 points per loop 
-#increase denominator for more points per loop
+
 def boris(dT, #compute time step
-          accuracy, #storage accuracy
-          P,
-          duration
-          ):#initial conditions
-#placeholder?
+          sampling, #storage accuracy
+          P, # intial conditions
+          duration): # length of time to compute
 
     
     (x0,y0,z0,Vx0,Vy0,Vz0) = P
@@ -251,99 +87,71 @@ def boris(dT, #compute time step
 
     @njit
     def loop(p,v):
+        #allows for more precise computation withough storing all the values/ saves ram
+        n = int(1/sampling/dT) # how many values to store base on sampling and dt
+        #print(1/sampling /dT)
+        loops = int(duration/dT)
+        arraysize = int(np.floor(loops/n) )
+        S = np.zeros((arraysize,3)) 
+        V = np.zeros((arraysize,3)) 
+        T = np.zeros(arraysize)
+        T[:] = np.nan
+        S[:] = np.nan
+        V[:] = np.nan
+        
+        #T = np.linspace(0,loops,loops) * dT
+        #t = np.linspace(0,n,duration) * dT * n
         j = 0
-        n = int(accuracy/20)
-        S = np.zeros((duration,3)) 
-        V = np.zeros((duration,3)) 
-        for time in range(duration):
+        k = 0
+        initial = True
+        lon0 = np.arctan2(p[1],p[0])
+        overlap = .02 
+        for time in range(loops):
         #nd and no E field
-            b = B_nd_dipole(p)
-            
-            U =  b *dT;
-            s = 2. * U / (1. + U*U);
+           
+            Bx,By,Bz = B_nd_dipole(p[0],p[1],p[2])
+            B = np.array([Bx,By,Bz])
+            t = B * 0.5 * dT;
+            s = 2. * t / (1. + t*t);
             v_minus = v 
-            v_prime = v_minus + np.cross(v_minus,U);
+            v_prime = v_minus + np.cross(v_minus,t);
             v_plus = v_minus + np.cross(v_prime,s);
             v = v_plus 
-            p = p+ v * dT;
-            
+            p += v * dT;
+            k = k + dT
             if np.mod(time,n) == 0:# this only grabs every nth value for storage
                 S[j,:] = p; 
                 V[j,:] = v; 
-                j = j+1
-                
-            S[time,:] = p;
-            V[time,:] = v; 
-            
-            
-            return S,V
+                T[j] = k
+                j = j +1
+                lon = np.arctan2(p[1],p[0])
+                #code that stops copmutation after a full drift period
+                #checks to see if particle has left initial region
+                if initial == True:
+                    if lon >= 1/4*np.pi:
+                        #print('condition')
+                        initial = False
+                #stops the loop if the particle has completed a shell
+                if initial == False:
+                    dlon = abs(lon - lon0 - overlap)
+                    if dlon <= 1e-4:
+                        #print(lon0,lon)
+                        print('break')
+                        break
+        return S,V,T
             
         
-    S,V = loop(p,v)
-    from Transformations import spherical_to_cartesian
-    
-    S[:,0],S[:,1],S[:,2],V[:,0],V[:,1],V[:,2] = spherical_to_cartesian(S[:,0],S[:,1],S[:,2],V[:,0],V[:,1],V[:,2])
-#        return S,V
-    
-    S,V = loop(p,v)
+    S,V,T = loop(p,v)
+
     xline = S[:, 0]
     yline = S[:, 1]
     zline = S[:, 2]
     Vx = V[:,0]
     Vy = V[:,1]
     Vz = V[:,2]
-    return xline,yline,zline,Vx,Vy,Vz
-
-'''
-    m =-1
-    e = 1
-    mass = m
-    charge = e;
-    m =-1
-    e = 1
+    #print(T)
     
-    n = int(accuracy/20)
-    v = P[3:6]
-    p = P[0:3]
-    @njit
-    def loop(p,v):
-        
-        
-        lon0 = np.arctan2(p[1],p[0])
-        #only want to compute 1 shell, so create conditions for comparison when 1 shell has been completed
-        ni = int(np.floor(duration/n))
-        S = np.zeros((ni,3)) 
-        V = np.zeros((ni,3))
-        #fill with nans so that unallocated values can easily be pruned
-        #matplotlib automatically ignores nan values
-        S[:] = np.nan
-        V[:] = np.nan
-        print(S.shape)
-        #initialize B and E fields
-        b = np.array([0.,0.,1.]) # doesnt really matter as it gets replaced by dipole later
-        E = np.array([0., 0., 0.]);
-        j = 0
-        initial = True # variable that tracks when the particle has left the initial region
-        overlap = .02 # overlap in the shell in rads
-        for i in range(duration): 
-            
-            (b[0],b[1],b[2]) = B(p[0],p[1],p[2])
-            
-            #boris method calculation
-            t = charge / mass * b * 0.5 * dt;
-            s = 2. * t / (1. + t*t);
-            v_minus = v + charge / (mass ) * E * 0.5 * dt;
-            v_prime = v_minus + np.cross(v_minus,t);
-            v_plus = v_minus + np.cross(v_prime,s);
-            v = v_plus + charge / (mass ) * E * 0.5 * dt;
-            p = p + v * dt;
-            
-            if np.mod(i,n) == 0:# this only grabs every nth value for storage
-                S[j,:] = p; 
-                V[j,:] = v; 
-                j = j+1
-            '''
-#checks to make sure particle has left initial region
+    return xline,yline,zline,Vx,Vy,Vz , T
 '''
             lon = np.arctan2(p[1],p[0])
             if initial == True:
@@ -357,15 +165,4 @@ def boris(dT, #compute time step
                     #print(lon0,lon)
                     #print('break')
                     break
-      
-#        return S,V
-    
-    S,V = loop(p,v)
-    xline = S[:, 0]
-    yline = S[:, 1]
-    zline = S[:, 2]
-    Vx = V[:,0]
-    Vy = V[:,1]
-    Vz = V[:,2]
-    return xline,yline,zline,Vx,Vy,Vz
 '''

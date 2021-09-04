@@ -8,7 +8,7 @@ Created on Wed Aug 11 20:35:34 2021
 #lowest level file, do not add fucntion calls from others files
 import numpy as np
 from numba import njit,jit
-import math
+#import math
 '''
 def B(x,y,z): #magnetic field of a dipole or any other arbitary magnetic field
      M = 100 #magnetic moment M = 8x10^22 \A m^2 for earth
@@ -25,11 +25,11 @@ def B(x,y,z): #magnetic field of a dipole or any other arbitary magnetic field
      #return 0,0,1 # test case with constant B vs known solution
      '''
 @njit
-def B(x,y,z): # axis is the direction of the dipole moment
+def B(x,y,z): # could add axis as  direction of the dipole moment
     #P = np.array(x,y,z)  # numba points here
     r2 = x*x + y*y + z*z
     d = np.power(r2,5/2)
-    #B_dipole = np.array([  ,  ,  ]) / 
+    #B_dipole = np.array([  ,  ,  ]) /  
     Bx = 3*x*z /d
     By = 3*y*z /d 
     Bz = ( 3*z**2 -r2 )/d
@@ -100,7 +100,7 @@ def spherical_to_cartesian(r, th, p, v_r, v_th, v_p):
 #*
 def cartesiantoLshell(x,y,z,Re): # converts cartesian coords to L-shell
     r = np.sqrt(np.power(x,2) + np.power(y,2) +np.power(z,2))
-    r = r/Re #converts r to be in earth radii : currently not in use
+    r = r/Re #converts r to be in earth radii 
     lambda0 = np.arctan2(z, np.sqrt(x**2 + y**2))
     denum = np.cos(lambda0)**2
     L = r/denum
@@ -189,7 +189,7 @@ def car2ctd(x0,y0,z0,Vx0,Vy0,Vz0,m,Re): #doesnt work with vector lists.  m = mas
     
     #print(phase)
  
-    return T,  math.degrees(alpha), math.degrees(phase), L, math.degrees(longitude), math.degrees(latitude)
+    return (alpha), (phase),T, L,(latitude), (longitude)
 
 #converts back to cartesian
 def ctd2car(pitch, phase, Kinetic_energy, Lshell, latitude, longitude, m, Re):
