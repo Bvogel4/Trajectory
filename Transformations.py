@@ -95,12 +95,10 @@ def spherical_to_cartesian(r, th, p, v_r, v_th, v_p):
     return x, y, z, v_x, v_y, v_z
 
 
-#!!!
-# neeed to pass Re and B into this file
-#*
-def cartesiantoLshell(x,y,z,Re): # converts cartesian coords to L-shell
+# x,y,z should already be in units of re
+def cartesiantoLshell(x,y,z): # converts cartesian coords to L-shell
     r = np.sqrt(np.power(x,2) + np.power(y,2) +np.power(z,2))
-    r = r/Re #converts r to be in earth radii 
+    #r = r/Re #converts r to be in earth radii 
     lambda0 = np.arctan2(z, np.sqrt(x**2 + y**2))
     denum = np.cos(lambda0)**2
     L = r/denum
@@ -202,6 +200,7 @@ def ctd2car(pitch, phase, Kinetic_energy, Lshell, latitude, longitude, m, Re):
     z = r* np.cos(phi)
     (Bx, By, Bz) = B(x,y,z)
     (Bx, By, Bz) = Bnormal(Bx, By, Bz)
+    
     
     
     V_mag = np.sqrt(2/m * Kinetic_energy) 

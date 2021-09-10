@@ -36,7 +36,7 @@ def rk45_nd(dT,
     T_span = (T[0],T[-1]) # Provide solution over this time range
 
     
-    soln = solve_ivp( dUdt_nd, T_span, S0, method='RK45', t_eval=T)
+    soln = solve_ivp( dUdt_nd, T_span, S0, method='RK45', t_eval=T,max_step = dT*100)
     
     
     xline = soln.y[0]

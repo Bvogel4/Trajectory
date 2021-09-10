@@ -94,7 +94,7 @@ def plotter(xline,yline,zline,Vx,Vy,Vz,filename,
     #plt.ylim(0,1.2)
     plt.savefig('ParticlePlots/'+filename+'Parallel-Perpendicular Velocity.png' ,format = 'png')
       
-      #postion
+    #postion
     plt.figure(4)
     plt.plot(T, xline)
     plt.plot(T, yline)
@@ -105,14 +105,17 @@ def plotter(xline,yline,zline,Vx,Vy,Vz,filename,
     plt.ylabel('Distance (m)')
     plt.savefig('ParticlePlots/'+filename+'Cartesian position.png' ,format = 'png')
     plt.figure(5)
+    
     #L-shell
-    (L,o) = trsfrm.cartesiantoLshell(xline,yline,zline,Re)
+    Re = 1
+    (L,o) = trsfrm.cartesiantoLshell(xline,yline,zline)
     plt.plot(T,L)
     plt.legend([ 'L '])
     plt.title('Initial pitch angle = {0:.2f} degrees'.format(pitchangle) )
     plt.xlabel(timelabel)
     plt.ylabel('L')
     plt.savefig('ParticlePlots/'+filename+'L-shell.png' ,format = 'png')
+    
     #xy plot
     plt.figure(6)
     plt.axes().set_aspect('equal', 'datalim')
