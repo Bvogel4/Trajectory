@@ -7,17 +7,33 @@ Created on Wed Aug 11 20:43:30 2021
 import numpy as np
 from matplotlib import pyplot as plt
 from vtk_export import vtk_export
-import tempfile
 import Transformations as trsfrm
 
 def plotter(xline,yline,zline,Vx,Vy,Vz,filename,
-            T, #nd time
-            integrator,pitchangle,m,Re):
+            T,t, #nd and seconds time
+            integrator,pitchangle,m,Re,units):
+        #valide choices for units are 's' 'Tc' 'min' 'days'
     Ke = .5 * m *( np.power(Vx,2) + np.power(Vy,2) + np.power(Vz,2) )
     Ke0 = Ke[0]
-    
+    #plot in seconds
+    T = t
 
-
+    if units == 's':
+        timelabel = 'Time (seconds)'
+        T_plot = t
+    elif units == 'Tc':
+        T_plot = T
+        timelabel = 'Time (Tc)'
+    elif units == 'min':
+        T_plot = t/60
+        timelabel = 'Time (minutes)'
+    elif units == 'days':
+        timelabel = 'Time (days)'
+        T_plot = t/60/60/24
+    else:
+        print('invalid choice for units\nuse s,Tc,min, or days\ndefaulting to Tc')
+        T_plot = T
+        timelabel = 'Time (Tc)'
     #getting V parrallel and V perpendicular
     (Vparrallel, Vperpendicular,V_perp) = trsfrm.VparVperp(xline,yline,zline,Vx, Vy, Vz) 
     
@@ -27,7 +43,6 @@ def plotter(xline,yline,zline,Vx,Vy,Vz,filename,
     #xline[~np.isnan(xline) removes nan values, paraview can't work with nans
     #should probably just do this after collecting lists, so I don't have to worry about them later for some other function
     points = np.column_stack([xline[~np.isnan(xline)],yline[~np.isnan(yline)],zline[~np.isnan(zline)]])
-    tmpdir = tempfile.gettempdir()
     out_filename = (filename + 'particle_motion.vtk')
     #out_filename = 'C:/Users/blake/.spyder-py3/.particle_motion.vtk'
     ftype = 'ASCII'
@@ -40,87 +55,93 @@ def plotter(xline,yline,zline,Vx,Vy,Vz,filename,
                     ftype=ftype,
                     debug = False)
     #2d Plotting: Energies, position, L-shell,x-y plot
-    ''' be done with integrator instead
-    if integrator == 'boris':
-      t = dt*np.linspace(0,looplimit -1,int(np.floor(looplimit/n)))
-      
-    Tc = 2 *np.pi * m / (e*Bi)
-    timelabel = 'Time (Tc)'
-    #more convient to plot in time scales involving gyro radius
-    tc = t
-    #tc = t/Tc
-    '''
-    timelabel = 'Time (Tc)'
+
+    #title = 'pitch = {}, q/m ={}'.format(pitchangle, m)
     #energy plot
-    plt.clf()
-    plt.figure(1)
-    if Ke0 == 0:
-        print('divide by zero!')
-        
-    plt.plot(T,Ke/Ke0)
-    #plt.ylim(0,1.2)
-    plt.legend(['Kinetic Energy'])
-    plt.title('Error in energy '+ filename+'method_' + integrator)
+    plt.figure(1,dpi = 300)
+    plt.plot(T_plot,abs((Ke0-Ke)/Ke0))
+    plt.title(filename)
     plt.xlabel(timelabel)
-    plt.ylabel('Ratio of T/T0')
-    plt.savefig('ParticlePlots/' + filename + 'Energy.png' ,format = 'png')
-    plt.ylim(.9, 1.1)
-      
+    plt.ylabel('Abslote error in energy')
+    plt.savefig('ParticlePlots/' + filename + '_Energy.png' ,format = 'png')
+    plt.show()
+    plt.clf()
     #velocity plots
     #x,y,z
     def VtoT(T): #output in ev
         Tev = T * 6.241509e18
         return Tev
-      
-    plt.figure(2)
-    plt.plot(T, VtoT(Vx))
-    plt.plot(T, VtoT(Vy))
-    plt.plot(T, VtoT(Vz))
-    plt.legend(['Ke_x', 'Ke_y', 'Ke_z'])
-    plt.title('Initial pitch angle = {0:.2f} degrees'.format(pitchangle) )
+    '''
+    plt.figure(2,dpi = 300)
+    plt.plot(T_plot, VtoT(Vx))
+    plt.plot(T_plot, VtoT(Vy))
+    plt.plot(T_plot, VtoT(Vz))
+    plt.legend(['Ke_x', 'Ke_y', 'Ke_z'], loc = 'upper right')
+    plt.title(filename)
     plt.xlabel(timelabel)
     plt.ylabel('Kinetic Energy (eV)')
-    plt.savefig('ParticlePlots/' + filename+ 'CartesianVelocity.png' ,format = 'png')
+    #plt.savefig('ParticlePlots/' + filename+ 'CartesianVelocity.png' ,format = 'png')
       
     #V, Vparr,Vperp
-    plt.figure(3)
+    plt.figure(3,dpi = 300)
     #plt.plot(t,V0/V) #test for magnitude of V after conversion to vparr and vperp
-    plt.plot(T, VtoT(Vparrallel))
-    plt.plot(T, VtoT(Vperpendicular))
-    plt.legend([ 'T parallel', 'T perpendicular'])
-    plt.title('Initial pitch angle = {0:.2f} degrees'.format(pitchangle) )
+    plt.plot(T_plot, VtoT(Vparrallel))
+    plt.plot(T_plot, VtoT(Vperpendicular))
+    plt.legend([ 'T parallel', 'T perpendicular'], loc = 'upper right')
+    plt.title(filename)
     plt.xlabel(timelabel)
     plt.ylabel('Energy (eV)')
     #plt.ylim(0,1.2)
     plt.savefig('ParticlePlots/'+filename+'Parallel-Perpendicular Velocity.png' ,format = 'png')
-      
-    #postion
-    plt.figure(4)
-    plt.plot(T, xline)
-    plt.plot(T, yline)
-    plt.plot(T, zline)
-    plt.legend(['x','y','z'])
-    plt.title('Initial pitch angle = {0:.2f} degrees'.format(pitchangle) )
+      '''
+    #position
+    plt.figure(4,dpi = 300)
+    plt.plot(T_plot, xline)
+    plt.plot(T_plot, yline)
+    plt.plot(T_plot, zline)
+    plt.legend(['x','y','z'], loc = 'upper right')
+    plt.title(filename)
     plt.xlabel(timelabel)
-    plt.ylabel('Distance (m)')
-    plt.savefig('ParticlePlots/'+filename+'Cartesian position.png' ,format = 'png')
-    plt.figure(5)
-    
+    plt.ylabel('Distance (Re)')
+    plt.savefig('ParticlePlots/'+filename+'_Cartesian position.png' ,format = 'png')
+    plt.show()
+    plt.clf()
     #L-shell
-    Re = 1
+    '''
+    plt.figure(5,dpi = 300)
     (L,o) = trsfrm.cartesiantoLshell(xline,yline,zline)
-    plt.plot(T,L)
-    plt.legend([ 'L '])
-    plt.title('Initial pitch angle = {0:.2f} degrees'.format(pitchangle) )
+    plt.plot(T_plot,L)
+    #plt.plot(T_plot,o)
+    plt.legend([ 'L '], loc = 'upper right')
+    plt.title(filename)
     plt.xlabel(timelabel)
     plt.ylabel('L')
-    plt.savefig('ParticlePlots/'+filename+'L-shell.png' ,format = 'png')
-    
+    #plt.savefig('ParticlePlots/'+filename+'L-shell.png' ,format = 'png')
+    '''
     #xy plot
-    plt.figure(6)
+    plt.figure(6,dpi = 300)
     plt.axes().set_aspect('equal', 'datalim')
     plt.plot(xline,yline)
-    plt.title('Initial pitch angle = {0:.2f} degrees'.format(pitchangle) )
-    plt.xlabel('X (m)')
-    plt.ylabel('Y (m)')
-    plt.savefig('ParticlePlots/'+filename+'XvsY.png' ,format = 'png')
+    plt.title(filename)
+    plt.xlabel('X (Re)')
+    plt.ylabel('Y (Re)')
+    plt.savefig('ParticlePlots/'+filename+'_XvsY.png' ,format = 'png')
+    plt.show()
+    plt.clf()
+    
+    #3d plot 
+    #python really isnt suited for this, as it does not have a true 3d renderer
+'''
+    ax = plt.axes(projection='3d')
+    
+    u, v = np.mgrid[0:2*np.pi:200j, 0:np.pi:100j]
+    x = np.cos(u)*np.sin(v)
+    y = np.sin(u)*np.sin(v)
+    z = np.cos(v)
+    ax.plot_surface(x, y, z, color="r")
+
+    plt.axes(xline, yline, zline, 'b')
+    
+    zlim = np.max(xline)
+    ax.set_zlim(-zlim, zlim)
+    '''
