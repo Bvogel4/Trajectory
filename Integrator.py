@@ -101,13 +101,20 @@ def boris(dT, sampling, P, duration, qsign):
         loops = int(duration/dT)
         # without storing every point array size can be reduced
         arraysize = int(np.floor(loops/n))
-        S = np.zeros((arraysize, 3))
-        V = np.zeros((arraysize, 3))
-        T = np.zeros(arraysize)
-        # fill with nans so that unused array slots aren't plotted
-        T[:] = np.nan
+        maxarraysize = 1  # GB
+        numbersize = 4  # itemsize does not work?
+        
+        if (arraysize*7*numbersize) > (maxarraysize*1e9):
+            # truncate time to keep accuracy of gyro
+            arraysize = int(maxarraysize*1e9)
+            loops = int(arraysize*n)
+            
+        store_type = np.float32
+        S = np.zeros((arraysize, 3),dtype = store_type)
         S[:] = np.nan
-        V[:] = np.nan
+        V = np.copy(S)
+        T = np.zeros(arraysize,dtype =store_type)
+        T[:] = np.nan
         j = 0  # indexer
         k = 0  # time
         initial = True
@@ -128,6 +135,7 @@ def boris(dT, sampling, P, duration, qsign):
             p += v * dT
             k = k + dT
             if np.mod(time, n) == 0:  # only grabs every nth value for storage
+
                 S[j, :] = p
                 V[j, :] = v
                 T[j] = k
@@ -139,6 +147,7 @@ def boris(dT, sampling, P, duration, qsign):
                 theta = abs((np.arctan2(np.sqrt(x**2+y**2), z)))
                 factor = np.sin(theta)**2
                 dT = dt * factor
+
                 if initial is True:
                     if abs(lon0 - lon) >= np.pi/2:
                         initial = False

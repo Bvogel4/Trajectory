@@ -6,6 +6,7 @@ from numba import njit
 
 @njit
 def B(x, y, z):  # could add axis as direction of the dipole moment
+    # non-dimensional dipole equation for magnetic field
     r2 = x**2 + y**2 + z**2
     d = np.power(r2, 5/2)
 

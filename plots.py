@@ -37,7 +37,7 @@ def plotter(xline, yline, zline, Vx, Vy, Vz, filename, title,
     # xline[~np.isnan(xline) removes nan values, paraview can't work with nans
     points = np.column_stack([xline[~np.isnan(xline)],
                              yline[~np.isnan(yline)], zline[~np.isnan(zline)]])
-    out_filename = (filename + 'particle_motion.vtk')
+    out_filename = (filename + 'xyz.vtk')
     # out_filename = 'C:/Users/blake/.spyder-py3/.particle_motion.vtk'
     ftype = 'ASCII'
     connectivity = {'LINES': np.array([points.shape[0]])}
@@ -58,7 +58,7 @@ def plotter(xline, yline, zline, Vx, Vy, Vz, filename, title,
     plt.title(title)
     plt.xlabel(timelabel)
     plt.ylabel('Relative error in energy')
-    plt.savefig(filename + 'Energy.svg', format='svg')
+    plt.savefig(filename + 'energy.svg', format='svg')
     # plt.show()
     plt.close()
     plt.clf()
@@ -99,11 +99,11 @@ def plotter(xline, yline, zline, Vx, Vy, Vz, filename, title,
     plt.plot(T_plot, xline)
     # plt.plot(T_plot, yline)
     # plt.plot(T_plot, zline)
-    plt.legend(['x', 'y', 'z'], loc='upper right')
+    plt.legend('x', loc='upper right')
     plt.title(title)
     plt.xlabel(timelabel)
     plt.ylabel('Distance (Re)')
-    plt.savefig(filename + 'x_position.svg', format='svg')
+    plt.savefig(filename + 'x.svg', format='svg')
     # plt.show()
     plt.close()
     plt.clf()
@@ -112,11 +112,11 @@ def plotter(xline, yline, zline, Vx, Vy, Vz, filename, title,
     # plt.plot(T_plot, xline)
     # plt.plot(T_plot, yline)
     plt.plot(T_plot, zline)
-    plt.legend(['z'], loc='upper right')
+    plt.legend('z', loc='upper right')
     plt.title(title)
     plt.xlabel(timelabel)
     plt.ylabel('Distance (Re)')
-    plt.savefig(filename + 'z_position.svg', format='svg')
+    plt.savefig(filename + 'z.svg', format='svg')
     # plt.show()
     plt.close()
     plt.clf()
@@ -125,11 +125,11 @@ def plotter(xline, yline, zline, Vx, Vy, Vz, filename, title,
     # plt.plot(T_plot, xline)
     plt.plot(T_plot, yline)
     # plt.plot(T_plot, zline)
-    plt.legend(['z'], loc='upper right')
+    plt.legend(['y'], loc='upper right')
     plt.title(title)
     plt.xlabel(timelabel)
     plt.ylabel('Distance (Re)')
-    plt.savefig(filename + 'y_position.svg', format='svg')
+    plt.savefig(filename + 'y.svg', format='svg')
     # plt.show()
     plt.close()
     plt.clf()
@@ -152,7 +152,7 @@ def plotter(xline, yline, zline, Vx, Vy, Vz, filename, title,
     plt.title(title)
     plt.xlabel('X (Re)')
     plt.ylabel('Y (Re)')
-    plt.savefig(filename + 'XvsY.svg', format='svg')
+    plt.savefig(filename + 'xy.svg', format='svg')
     # plt.show()
     plt.close()
     plt.clf()
@@ -173,4 +173,51 @@ def plotter(xline, yline, zline, Vx, Vy, Vz, filename, title,
 
     ax.plot(xline, yline, zline, 'b')
     #saving 3d plots doesn't seem to work, So this will be left disabled'
+'''
+
+'''
+def three_d_plot(xpoints,ypoints,zpoints,filename,title):
+    # 3d animation, very resource intensive and limited length
+
+    fig = plt.figure(figsize=(9, 9))
+
+    axf = plt.subplot(3,3,(1,9),projection = '3d')
+
+    # final graph
+    axf.set_xlim(-2,2)
+    axf.set_ylim(-2,2)
+    axf.set_zlim(-1,1)
+    axf.grid()
+    axf.set_xlabel('x(m)')
+    axf.set_ylabel('y(m)')
+    axf.set_zlabel('z(m)')
+    
+    txt_title = axf.set_title('')
+
+    linef, = axf.plot3D([],[],[],'-b',lw = 1)
+    ptf, = axf.plot3D([],[],[],'.k', ms = 20)
+    #tpoints = np.linspace(0,50,10000)
+    #tpoints = t
+    
+    
+    def drawframe(n):
+        arraysize = len(xpoints)
+        x = xpoints[n]
+        y = ypoints[n]
+        z = zpoints[n]
+        #t = tpoints[n]
+        txt_title.set_text(title)
+        linef.set_data_3d(xpoints[0:n],ypoints[0:n],zpoints[0:n])
+        ptf.set_data_3d(x,y,z)
+
+        angle = (360/(arraysize*10000))*10*n+45
+        axf.view_init(30, angle)
+        return (linef,ptf)
+    
+    from matplotlib import animation
+
+    anim = animation.FuncAnimation(fig, drawframe, frames = 600, interval=1, blit=True,  cache_frame_data = False) # run out of memory if frame number is too high > 1000?
+
+    anim.save('ParticlePlots/'+filename+'_3ddipolemotion.mp4', writer='imagemagick',fps = 24) 
+    
 '''
