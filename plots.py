@@ -35,10 +35,10 @@ def plotter(xline, yline, zline, Vx, Vy, Vz, filename, title,
         = trsfrm.VparVperp(xline, yline, zline, Vx, Vy, Vz)
     # for vtk export
     # xline[~np.isnan(xline) removes nan values, paraview can't work with nans
-    points = np.column_stack([xline[~np.isnan(xline)],
-                             yline[~np.isnan(yline)], zline[~np.isnan(zline)]])
+    points = np.column_stack([xline[~np.isnan(xline)], yline[~np.isnan(yline)],
+                              zline[~np.isnan(zline)]])
     out_filename = (filename + 'xyz.vtk')
-    # out_filename = 'C:/Users/blake/.spyder-py3/.particle_motion.vtk'
+
     ftype = 'ASCII'
     connectivity = {'LINES': np.array([points.shape[0]])}
 
@@ -65,35 +65,6 @@ def plotter(xline, yline, zline, Vx, Vy, Vz, filename, title,
     # velocity plots
     # x,y,z
 
-    def VtoT(T):  # output in ev
-        Tev = T * 6.241509e18
-        return Tev
-    '''
-    plt.figure(2,dpi = 300)
-    plt.plot(T_plot, VtoT(Vx))
-    plt.plot(T_plot, VtoT(Vy))
-    plt.plot(T_plot, VtoT(Vz))
-    plt.legend(['Ke_x', 'Ke_y', 'Ke_z'], loc = 'upper right')
-    plt.title(filename)
-    plt.xlabel(timelabel)
-    plt.ylabel('Kinetic Energy (eV)')
-    #plt.savefig('ParticlePlots/'\
-        + filename+ 'CartesianVelocity.png' ,format = 'png')
-
-    #V, Vparr,Vperp
-    plt.figure(3,dpi = 300)
-    #plt.plot(t,V0/V) #test for magnitude of V\
-        after conversion to vparr and vperp
-    plt.plot(T_plot, VtoT(Vparrallel))
-    plt.plot(T_plot, VtoT(Vperpendicular))
-    plt.legend([ 'T parallel', 'T perpendicular'], loc = 'upper right')
-    plt.title(filename)
-    plt.xlabel(timelabel)
-    plt.ylabel('Energy (eV)')
-    #plt.ylim(0,1.2)
-    plt.savefig('ParticlePlots/'+filename + \
-                'Parallel-Perpendicular Velocity.png' ,format = 'png')
-      '''
     # position
     plt.figure(4, figsize=size)
     plt.plot(T_plot, xline)
@@ -134,17 +105,7 @@ def plotter(xline, yline, zline, Vx, Vy, Vz, filename, title,
     plt.close()
     plt.clf()
     # L-shell
-    '''
-    plt.figure(5,dpi = 300)
-    (L,o) = trsfrm.cartesiantoLshell(xline,yline,zline)
-    plt.plot(T_plot,L)
-    #plt.plot(T_plot,o)
-    plt.legend([ 'L '], loc = 'upper right')
-    plt.title(filename)
-    plt.xlabel(timelabel)
-    plt.ylabel('L')
-    #plt.savefig('ParticlePlots/'+filename+'L_shell.png' ,format = 'png')
-    '''
+
     # xy plot
     plt.figure(6, figsize=size)
     plt.axes().set_aspect('equal', 'datalim')
@@ -160,7 +121,48 @@ def plotter(xline, yline, zline, Vx, Vy, Vz, filename, title,
     # 3d plot
     # python isnt suited for this, as it does not have a true 3d renderer
 
+    '''
+    def VtoT(T):  # output in ev
+        Tev = T * 6.241509e18
+        return Tev
+    plt.figure(2,dpi = 300)
+    plt.plot(T_plot, VtoT(Vx))
+    plt.plot(T_plot, VtoT(Vy))
+    plt.plot(T_plot, VtoT(Vz))
+    plt.legend(['Ke_x', 'Ke_y', 'Ke_z'], loc = 'upper right')
+    plt.title(filename)
+    plt.xlabel(timelabel)
+    plt.ylabel('Kinetic Energy (eV)')
+    #plt.savefig('ParticlePlots/'\
+        + filename+ 'CartesianVelocity.png' ,format = 'png')
 
+    #V, Vparr,Vperp
+    plt.figure(3,dpi = 300)
+    #plt.plot(t,V0/V) #test for magnitude of V\
+        after conversion to vparr and vperp
+    plt.plot(T_plot, VtoT(Vparrallel))
+    plt.plot(T_plot, VtoT(Vperpendicular))
+    plt.legend([ 'T parallel', 'T perpendicular'], loc = 'upper right')
+    plt.title(filename)
+    plt.xlabel(timelabel)
+    plt.ylabel('Energy (eV)')
+    #plt.ylim(0,1.2)
+    plt.savefig('ParticlePlots/'+filename + \
+                'Parallel-Perpendicular Velocity.png' ,format = 'png')
+'''
+
+
+'''
+    plt.figure(5,dpi = 300)
+    (L,o) = trsfrm.cartesiantoLshell(xline,yline,zline)
+    plt.plot(T_plot,L)
+    #plt.plot(T_plot,o)
+    plt.legend([ 'L '], loc = 'upper right')
+    plt.title(filename)
+    plt.xlabel(timelabel)
+    plt.ylabel('L')
+    #plt.savefig('ParticlePlots/'+filename+'L_shell.png' ,format = 'png')
+    '''
 '''
     ax = plt.axes(projection='3d')
     # generates earth size sphere,
@@ -191,15 +193,14 @@ def three_d_plot(xpoints,ypoints,zpoints,filename,title):
     axf.set_xlabel('x(m)')
     axf.set_ylabel('y(m)')
     axf.set_zlabel('z(m)')
-    
+
     txt_title = axf.set_title('')
 
     linef, = axf.plot3D([],[],[],'-b',lw = 1)
     ptf, = axf.plot3D([],[],[],'.k', ms = 20)
     #tpoints = np.linspace(0,50,10000)
     #tpoints = t
-    
-    
+
     def drawframe(n):
         arraysize = len(xpoints)
         x = xpoints[n]
@@ -213,11 +214,14 @@ def three_d_plot(xpoints,ypoints,zpoints,filename,title):
         angle = (360/(arraysize*10000))*10*n+45
         axf.view_init(30, angle)
         return (linef,ptf)
-    
+
     from matplotlib import animation
 
-    anim = animation.FuncAnimation(fig, drawframe, frames = 600, interval=1, blit=True,  cache_frame_data = False) # run out of memory if frame number is too high > 1000?
+    anim = animation.FuncAnimation(fig, drawframe, frames = 600, interval=1,
+                                   blit=True,  cache_frame_data = False)
+    # run out of memory if frame number is too high > 1000?
 
-    anim.save('ParticlePlots/'+filename+'_3ddipolemotion.mp4', writer='imagemagick',fps = 24) 
-    
+    anim.save('ParticlePlots/'+filename+'_3ddipolemotion.mp4'
+              , writer='imagemagick',fps = 24)
+
 '''

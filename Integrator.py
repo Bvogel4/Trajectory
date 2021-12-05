@@ -3,6 +3,10 @@ import numpy as np
 from numba import njit
 from scipy.integrate import solve_ivp
 from transformations import B as B_nd_dipole
+#from datetime import datetime
+
+
+#startTime = datetime.now()
 
 
 @njit
@@ -37,13 +41,17 @@ def rk45_nd(dT, tfinal, S0, qsign):
     # create a t array for solution
     n = int(tfinal/dT)
     T = dT * np.linspace(0, n, n)  # need to find appropiate dT and T ranges
+    
+    #need to cap arraysize
+    arraysize = len(T)
+    #if 7*arraysize*8 >1e9
     T_span = (T[0], T[-1])  # Provide solution over this time range
     if qsign == 1:
         soln = solve_ivp(dUdt_nd, T_span, S0, method='RK45', t_eval=T,
-                         atol=1e-13, rtol=1e-13)
+                         atol=1e-10, rtol=1e-10)
     elif qsign == -1:
         soln = solve_ivp(dUdt_nd2, T_span, S0, method='RK45', t_eval=T,
-                         atol=1e-13, rtol=1e-13)
+                         atol=1e-10, rtol=1e-10)
 
     xline = soln.y[0]
     yline = soln.y[1]
@@ -91,7 +99,7 @@ def boris(dT, sampling, P, duration, qsign):
     p = np.array([x0, y0, z0])
     v = np.array([Vx0, Vy0, Vz0])
 
-    @njit
+    @njit(nogil=True)
     def loop(p, v, dt):
         #  non adaptive time step struggles with high latitudes > ~70
         dT = dt
@@ -101,25 +109,41 @@ def boris(dT, sampling, P, duration, qsign):
         loops = int(duration/dT)
         # without storing every point array size can be reduced
         arraysize = int(np.floor(loops/n))
-        maxarraysize = 1  # GB
-        numbersize = 4  # itemsize does not work?
-        
+        '''
+        change this value to increase length of the array
+        note the total memory used will be this value *7 since
+        there are two 2darrays with added axis of length 3
+        and another one for time
+        '''
+        maxarraysize = 1 /7  # GB !!!!!!
+        '''
+        '''
+        store_type = np.float64
+        # changing this to np.float 32 is noticable in electron gyros
+
+        # if changing number type change this too
+        numbersize = 8  # itemsize does not work with numba?
+
         if (arraysize*7*numbersize) > (maxarraysize*1e9):
             # truncate time to keep accuracy of gyro
-            arraysize = int(maxarraysize*1e9)
+            arraysize = int(maxarraysize*1e9/numbersize)
             loops = int(arraysize*n)
+            print('array has been truncated at size',8*arraysize/1e9*7,'GB')
+        if loops > 6.6e9:
+            loops = 6.6e9
             
-        store_type = np.float32
-        S = np.zeros((arraysize, 3),dtype = store_type)
+        S = np.zeros((arraysize, 3), dtype=store_type)
         S[:] = np.nan
         V = np.copy(S)
-        T = np.zeros(arraysize,dtype =store_type)
+        T = np.zeros(arraysize, dtype=store_type)
         T[:] = np.nan
         j = 0  # indexer
         k = 0  # time
         initial = True
         lon0 = np.arctan2(p[1], p[0])
         overlap = 1e-1
+
+        
         for time in (range(loops)):
             # nd and no E field
             Bx, By, Bz = B_nd_dipole(p[0], p[1], p[2])
@@ -147,7 +171,11 @@ def boris(dT, sampling, P, duration, qsign):
                 theta = abs((np.arctan2(np.sqrt(x**2+y**2), z)))
                 factor = np.sin(theta)**2
                 dT = dt * factor
-
+                # runtime = (datetime.now() - startTime).seconds
+                # maxruntime = 1 * 60**2
+                # if (runtime) > maxruntime:
+                #     print('Max runtime reached, stopping sim')
+                #     break
                 if initial is True:
                     if abs(lon0 - lon) >= np.pi/2:
                         initial = False
@@ -168,5 +196,9 @@ def boris(dT, sampling, P, duration, qsign):
     Vx = (V[:, 0])
     Vy = (V[:, 1])
     Vz = (V[:, 2])
+    
+    V = np.linalg.norm(np.array((Vx,Vy,Vz)),axis = 0)
+    
+    err_V = abs(V[0]- V)/V[0]
 
-    return xline, yline, zline, Vx, Vy, Vz, T
+    return xline, yline, zline, Vx, Vy, Vz, T,err_V
