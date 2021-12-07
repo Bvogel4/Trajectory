@@ -1,13 +1,13 @@
 
 # This file perfroms all the transformations from the transformatons module
 # computes the arrays using the Integrators module
-# plots using the plots module
+# save to save plaintext and .vtk for paraview
+# plot gernertes saved images to look at simualation parameters
 import math
 import os
 import numpy as np
 import transformations as trsfrm
 import integrator
-import plots
 from datetime import datetime
 from matplotlib import pyplot as plt
 from vtk_export import vtk_export
@@ -110,7 +110,7 @@ def particle_sim(L_shell=2,
             print('particle will hit the atmosphere, skipping')
             return
 
-
+    err_V = None
     # choose integrator based of input
     if integrate is True:
         if method == 'rk45':
@@ -125,6 +125,12 @@ def particle_sim(L_shell=2,
         else:
             print('invalid method')
         t = T*tc
+        
+    if type(err_V) != np.ndarray:
+        
+        if err_V == None:
+            V = np.linalg.norm(np.array((Vx,Vy,Vz)),axis = 0)
+            err_V = abs(V[0]- V)/V[0]
         #print('integrator done at time ', datetime.now() - startTime)
         '''
         if Save is True:
@@ -263,20 +269,24 @@ def plot(L_shell, pitchangle, charge, m, Kinetic_energy, method, err_V, units='s
     
 
     size = [12.8, 9.6]
-    plt.figure(1, figsize=size)
-    plt.plot(T_plot,err_E) 
+
+    
+    plt.figure(figsize=size)
+    
+    plt.plot(T_plot,err_E,label='error in energy') 
     plt.title(title)
+    plt.legend()
     plt.xlabel(timelabel)
     plt.ylabel('Relative error in energy')
     plt.savefig(filename + 'energy.svg', format='svg')
-    # plt.show()
     plt.close()
-    plt.clf()
+    # plt.show()
+
     # velocity plots
     # x,y,z
 
     # position
-    plt.figure(4, figsize=size)
+    plt.figure(figsize=size)
     plt.plot(T_plot, xline)
     # plt.plot(T_plot, yline)
     # plt.plot(T_plot, zline)
@@ -287,9 +297,9 @@ def plot(L_shell, pitchangle, charge, m, Kinetic_energy, method, err_V, units='s
     plt.savefig(filename + 'x.svg', format='svg')
     # plt.show()
     plt.close()
-    plt.clf()
 
-    plt.figure(5, figsize=size)
+
+    plt.figure(figsize=size)
     # plt.plot(T_plot, xline)
     # plt.plot(T_plot, yline)
     plt.plot(T_plot, zline)
@@ -300,9 +310,8 @@ def plot(L_shell, pitchangle, charge, m, Kinetic_energy, method, err_V, units='s
     plt.savefig(filename + 'z.svg', format='svg')
     # plt.show()
     plt.close()
-    plt.clf()
 
-    plt.figure(7, figsize=size)
+    plt.figure(figsize=size)
     # plt.plot(T_plot, xline)
     plt.plot(T_plot, yline)
     # plt.plot(T_plot, zline)
@@ -313,11 +322,11 @@ def plot(L_shell, pitchangle, charge, m, Kinetic_energy, method, err_V, units='s
     plt.savefig(filename + 'y.svg', format='svg')
     # plt.show()
     plt.close()
-    plt.clf()
+ 
     # L-shell
 
     # xy plot
-    plt.figure(6, figsize=size)
+    plt.figure(figsize=size)
     plt.axes().set_aspect('equal', 'datalim')
     plt.plot(xline, yline)
     plt.title(title)
@@ -326,7 +335,7 @@ def plot(L_shell, pitchangle, charge, m, Kinetic_energy, method, err_V, units='s
     plt.savefig(filename + 'xy.svg', format='svg')
     # plt.show()
     plt.close()
-    plt.clf()
+
 
 def trajectory(pitch,m,Ke,q,T,acc,Lshell,sample,inte):
     t = 1e9*Ke**-1
@@ -343,62 +352,70 @@ def trajectory(pitch,m,Ke,q,T,acc,Lshell,sample,inte):
           zline=zline, Vx=Vx, Vy=Vy, Vz=Vz)
 
 
+# energy plots still not working right
 
 def demo():
     m = [M_e, M_e, M_p, M_p, M_p, M_p, M_p, M_p]
     q = [C_e, C_e, -C_e, -C_e, -C_e, -C_e, -C_e, -C_e]
     Ke = [1e3, 1e3, 1e8, 1e8, 1e8, 1e8, 1e8, 1e8]
-    T = [1e-5, 1, 1e-2, .2, 10, 10, 4, 4]
+    # T = [1e-5, 1, 1e-2, .2, 10, 10, .1, .1]
+    T = [1e-5, 1, 1e-2, .2, 10, 10, .1, .1]
     acc = [1e2, 1e2, 1e2, 1e3, 1e2, 1e2, 1e4, 1e2]
     pitch = [90, 89, 90, 89, 90, 90, 5, 5]
     Lshell = [2.1, 1, 1.64, 1, 3, 3, 1, 1]
     sample = [20, .01, 10, 5, 1, 1, 1, 1]
     inte = ['boris', 'boris', 'boris', 'boris', 'boris', 'rk45',
             'boris', 'rk45']
+    
+    
 
     # takes my computer 30 mins to run all of these
     # wow that last one takes ages
     # why can't I parallize this? they share values so it comes out as nonsense
     
-    Parallel(n_jobs=-2, prefer="threads")(
-        delayed(trajectory)(pitch[i], m[i], Ke[i], q[i], T[i], 
-        acc[i], Lshell[i], sample[i], inte[i]) for i in [0,2])
-    
-    
-    # for i in range(0,4):
-    #     trajectory(pitch[i], m[i], Ke[i], q[i], T[i],
-    #                     acc[i], Lshell[i], sample[i], inte[i])
+    # Parallel(n_jobs=8, prefer="threads")(
+    #     delayed(trajectory)(pitch[i], m[i], Ke[i], q[i], T[i],
+    #                         acc[i], Lshell[i], sample[i], inte[i]) \
+                              # for i in [0, 2, 3, 4, 5, 6])
+    # the short gyro and electron bounce period cause problems
+    #try reoganizing and doing them in serial while the others are parallel
+
+    for i in range(0,8):
+        trajectory(pitch[i], m[i], Ke[i], q[i], T[i],
+                        acc[i], Lshell[i], sample[i], inte[i])
                        
         # len(m)):  # remeber to set this back to len(m)
 
 
-def trajectory_generator():
-    L = np.linspace(2, 10, 27)
+def trajectory_generator(par = True):
+    L = np.linspace(2, 10, 7)
     #pitch = np.linspace(90, 10, 8)
-    pitch = 90
+    pitch = [90]
     m = [M_p, M_e]
     q = [-C_e, C_e]
     #K = np.logspace(8, 2, 7)
-    K = 1e8
+    K = [1e8]
     T = 1
     acc= 1e1
-# use joblib to speed up ranges
-    # for a in range(0, len(m)):  # skip electron for now
-    #     for b in range(0, len(K)):
-    #         for c in range(0, len(pitch)):
-    #             for d in range(0, len(L)):
-    #                 # print(a+b+c+d)
-    #                 tshell = 1e9*K[b]**-1
-    #                 # print(tshell)
-    #                 particle_sim(L_shell=L[d], pitchangle=pitch[c], mass=m[a],
-    #                              charge=q[a],  Kinetic_energy=K[b], t=tshell)
+    
+    if par == False:
+        for a in range(0, len(m)):  # skip electron for now
+            for b in range(0, len(K)):
+                for c in range(0, len(pitch)):
+                    for d in range(0, len(L)):
+                        # print(a+b+c+d)
+                        tshell = 1e9*K[b]**-1
+                        # print(tshell)
+                        particle_sim(L_shell=L[d], pitchangle=pitch[c], mass=m[a],
+                                      charge=q[a],  Kinetic_energy=K[b], t=tshell)
     #                 #I think the longest ones will take around 8 days?
-                    
-    Parallel(n_jobs=-2, prefer='threads')(
-            delayed(trajectory)(pitch[c], m[a], K[b], q[a], T, acc, 
-             L[d],5, 'boris') for a in range(len(m)) for b in range(len(K))
-            for c in range(len(pitch)) for d in range(len(L)))
+    #use joblib to speed up compute time
+    if par == True:
+        Parallel(n_jobs=-2, prefer='threads')(
+                delayed(trajectory)(pitch[c], m[a], K[b], q[a], T, acc, 
+                 L[d],5, 'boris') for a in range(len(m)) for b in range(len(K))
+                for c in range(len(pitch)) for d in range(len(L)))
 
-demo()
-#rajectory_generator()
+#demo()
+#trajectory_generator()
 

@@ -114,6 +114,7 @@ def boris(dT, sampling, P, duration, qsign):
         note the total memory used will be this value *7 since
         there are two 2darrays with added axis of length 3
         and another one for time
+        #note that parallel computing requires additional ram for each job
         '''
         maxarraysize = 1 /7  # GB !!!!!!
         '''
@@ -128,7 +129,7 @@ def boris(dT, sampling, P, duration, qsign):
             # truncate time to keep accuracy of gyro
             arraysize = int(maxarraysize*1e9/numbersize)
             loops = int(arraysize*n)
-            print('array has been truncated at size',8*arraysize/1e9*7,'GB')
+            #print('array has been truncated at size',8*arraysize/1e9*7,'GB')
         if loops > 6.6e9:
             loops = 6.6e9
             
@@ -184,7 +185,7 @@ def boris(dT, sampling, P, duration, qsign):
                     dlon = abs(lon - lon0 - overlap)
                     if dlon <= 1e-2:
                         # print(lon0,lon)
-                        print('1 drift period completed. Stopping simulation.')
+                        #print('1 drift period completed. Stopping simulation.')
                         break
         return S, V, T
 
@@ -197,8 +198,8 @@ def boris(dT, sampling, P, duration, qsign):
     Vy = (V[:, 1])
     Vz = (V[:, 2])
     
-    V = np.linalg.norm(np.array((Vx,Vy,Vz)),axis = 0)
+    V2 = np.linalg.norm(np.array((Vx,Vy,Vz)),axis = 0)
     
-    err_V = abs(V[0]- V)/V[0]
+    err_V = abs(V2[0]**2- V2**2)/V2[0]**2
 
     return xline, yline, zline, Vx, Vy, Vz, T,err_V
