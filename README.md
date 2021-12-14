@@ -1,22 +1,26 @@
 # Overview
 
-This program simulates a particle's non-relativistic motion in earth's magnetic field, modeled as a simple dipole. Can easily be modified for any dipole. Three different options for numerical integration: Euler Cromer is faster, but less accurate than both Boris and Runga Kutta 4th order (rk45).
+This program simulates a particle's non-relativistic motion in dipole magnetic field.
 
-rk45 takes longer for similar accuracy, except when adaptive time step is especially useful such as at high latitudes.
+Three different options are available for numerical integration: [Euler-Cromer](https://aapt.scitation.org/doi/10.1119/1.12478), [Boris](https://books.google.com/books?id=S2lqgDTm6a4C&q=Borris#v=onepage&q=Boris&f=false), and [Runge-Kutta-Fehlberg](https://ntrs.nasa.gov/api/citations/19700031412/downloads/19700031412.pdf).
 
-The Boris method can be computed to an arbitrary time step, usually shorter for similar accuracy. Inaccurate near low pitch angles <5deg (more than Runga Kutta) due to no adaptive steps. 
+Euler-Cromer integration is faster, but less accurate than both Boris and RKF.
 
-For equatorial bound particles in Boris method, the time step need is quite low at 1e-1 in nd time steps otherwise lower timesteps are generally needed. The Boris method also has a feature to only simulate 1 drift period to shorten computation time. 
+`rk45` takes longer for similar accuracy, except when adaptive time step is especially useful such as at high latitudes.
 
-Boris method is tailored specifically to Lorentz force motion, as it conserves system's energy better. Boris method in general can handle E fields, but this functionality is currently omitted.
+The Boris method can be computed to an arbitrary time step, usually shorter for similar accuracy. Inaccurate near small pitch angles (< 5°) (more than Runga Kutta) due to no adaptive steps. 
+
+For equatorial-bound particles, the time step needed for the Boris method is quite low at `0.01` in nd time steps otherwise lower timesteps are generally needed. The Boris integration option in this code also has an option to only simulate one drift period in order to shorten computation time. 
+
+The Boris method is tailored specifically to Lorentz force motion, as it conserves system's energy better. Boris method in general can handle electric fields, but this has not been implemented.
 
 Initial condition and properties are measured in a more convenient centered dipole coordinate system while the integration is performed in non-dimensional cartesian coordinates.
 
 # Use
 
 ```
-git clone ...
-cd ...
+git clone https://github.com/rweigel/Trajectory
+cd Trajectory
 python3 command
 ```
 
