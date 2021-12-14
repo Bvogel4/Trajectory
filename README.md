@@ -28,9 +28,9 @@ With _2dplots = True, generates 3 plots: error vs time, cartesian coordinates vs
 more plots can be enabled by uncommenting them in plots&#46;py. For checking accuracy or long simualtions, the energy.svg are crucial to checking to make sure the simulation maintains the desired level of accuracy.
 
 Exports particle path trajectories as .VTKs for import into Paraview for viewing.
-##comparison of algorithims
-![Boris Method]()
-![Runge Kutta 4th order]()
+# Comparison of algorithims
+![Boris Method](plots/qm_95,788,534.15706204_Ke_100000.0MeV_pitch_90d_L_3Re_boris/energy.svg)
+![Runge Kutta 4th order](plots/qm_95,788,534.15706204_Ke_100000.0MeV_pitch_90d_L_3Re_rk45/energy.svg)
 
 
 ## Appendix
