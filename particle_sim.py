@@ -4,15 +4,16 @@
 # save to save plaintext and .vtk for paraview
 # plot gernertes saved images to look at simualation parameters
 import math
-import os
 import numpy as np
-import transformations as trsfrm
-import integrator
 from datetime import datetime
-from matplotlib import pyplot as plt
-from vtk_export import vtk_export
+
 from joblib import Parallel
 from joblib import delayed
+
+import transformations as trsfrm
+import integrator
+from output import save
+from output import plot
 
 
 startTime = datetime.now()
@@ -148,182 +149,11 @@ def particle_sim(L_shell=2,
 # lists to generate various trajectory examples
 
 
-def save(t, xline, yline, zline, Vx, Vy, Vz, L_shell, pitchangle,
-         charge, mass, Kinetic_energy, method):
-    if not os.path.exists('plots'):
-        os.mkdir('plots')
-
-    qm_rat = charge/mass
-    kename = Kinetic_energy*1e-3
-
-    filename = 'plots/qm_{:,}_Ke_{}MeV_pitch_{}d_L_{}Re_{}/'\
-        .format(qm_rat, kename, pitchangle, L_shell, method)
-
-    # title = '''pitch = {}\N{DEGREE SIGN} q/m = {:,}, L = {},
-    #     Ke = {:.1e}eV, Method = {}''' \
-    #     .format(pitchangle, qm_rat, L_shell, Kinetic_energy, method)
-    # make directory for plots
-    if not os.path.exists(filename):
-        os.mkdir(filename)
-    # tc = abs((mass/(charge*Bc)))
-    # T = t/tc
-
-    points = np.column_stack([xline[~np.isnan(xline)], yline[~np.isnan(yline)],
-                              zline[~np.isnan(zline)]])
-    out_filename = (filename + 'xyz.vtk')
-
-    ftype = 'ASCII'
-    connectivity = {'LINES': np.array([points.shape[0]])}
-
-    vtk_export(out_filename, points,  # should points be lines?
-               dataset='POLYDATA',
-               connectivity=connectivity,
-               title='Title',
-               ftype=ftype,
-               debug=False)
-
-    arr_out = np.array((t, xline, yline, zline, Vx, Vy, Vz))
-    np.savetxt(filename + 'trajectory.txt', arr_out)
-    return
-
-
-def plot(L_shell, pitchangle, charge, m, Kinetic_energy, method, err_V,
-         units='s', t=None, xline=None, yline=None, zline=None, Vx=None,
-         Vy=None, Vz=None):
-    # valid choices for units are 's' 'Tc' 'min' 'days
-    # x = None passes nothing if compute was not run,
-    # and pull from save if exists
-    # but if a save exists, new compute get's priority for plot
-
-    qm_rat = charge/m
-    kename = Kinetic_energy*1e-3
-
-    filename = 'plots/qm_{:,}_Ke_{}MeV_pitch_{}d_L_{}Re_{}/'\
-        .format(qm_rat, kename, pitchangle, L_shell, method)
-
-    title = '''pitch = {}\N{DEGREE SIGN} q/m = {:,}, L = {},
-        Ke = {:.1e}eV, Method = {}''' \
-        .format(pitchangle, qm_rat, L_shell, Kinetic_energy, method)
-
-    # read in values if needed
-    # check if file exists already?
-    # how to check if other arrays exist?
-    # if t == none then no array exists and need to read
-    if t is None:
-        if os.path.exists(filename):
-            t, xline, yline, zline, Vx, Vy, Vz = np.loadtxt(
-                filename+'trajectory.txt')
-        elif not os.path.exists(filename):
-            print('no such value was computed or saved')
-
-    elif t is not None:
-        # need to check if folder exists or not
-        if not os.path.exists(filename):
-            os.mkdir(filename)
-
-    Ke = .5 * m * (np.power(Vx, 2) + np.power(Vy, 2) + np.power(Vz, 2))
-    Ke0 = Ke[0]
-    err_E = abs((Ke0-Ke)/Ke0)
-    #  plot in seconds
-    T = t
-    if units == 's':
-        timelabel = 'Time (seconds)'
-        T_plot = t
-    elif units == 'Tc':
-        T_plot = T
-        timelabel = 'Time (Tc)'
-    elif units == 'min':
-        T_plot = t/60
-        timelabel = 'Time (minutes)'
-    elif units == 'days':
-        timelabel = 'Time (days)'
-        T_plot = t/60/60/24
-    else:
-        print(
-            'invalid choice for units use s, Tc, min, or days defaulting to s')
-        timelabel = 'Time (seconds)'
-        T_plot = t
-    # getting V parrallel and V perpendicular
-    (Vparrallel, Vperpendicular, V_perp)\
-        = trsfrm.VparVperp(xline, yline, zline, Vx, Vy, Vz)
-    # for vtk export
-    # xline[~np.isnan(xline) removes nan values, paraview can't work with nans
-
-    # 2d Plotting: Energies, position, L-shell,x-y plot
-
-    # title = 'pitch = {}, q/m ={}'.format(pitchangle, m)
-    # energy plot
-
-    size = [12.8, 9.6]
-
-    plt.figure(figsize=size)
-
-    plt.plot(T_plot, err_E, label='error in energy')
-    plt.title(title)
-    plt.legend()
-    plt.xlabel(timelabel)
-    plt.ylabel('Relative error in energy')
-    plt.savefig(filename + 'energy.svg', format='svg')
-    plt.close()
-    # plt.show()
-
-    # velocity plots
-    # x,y,z
-
-    # position
-    plt.figure(figsize=size)
-    plt.plot(T_plot, xline)
-    # plt.plot(T_plot, yline)
-    # plt.plot(T_plot, zline)
-    plt.legend('x', loc='upper right')
-    plt.title(title)
-    plt.xlabel(timelabel)
-    plt.ylabel('Distance (Re)')
-    plt.savefig(filename + 'x.svg', format='svg')
-    # plt.show()
-    plt.close()
-
-    plt.figure(figsize=size)
-    # plt.plot(T_plot, xline)
-    # plt.plot(T_plot, yline)
-    plt.plot(T_plot, zline)
-    plt.legend('z', loc='upper right')
-    plt.title(title)
-    plt.xlabel(timelabel)
-    plt.ylabel('Distance (Re)')
-    plt.savefig(filename + 'z.svg', format='svg')
-    # plt.show()
-    plt.close()
-
-    plt.figure(figsize=size)
-    # plt.plot(T_plot, xline)
-    plt.plot(T_plot, yline)
-    # plt.plot(T_plot, zline)
-    plt.legend(['y'], loc='upper right')
-    plt.title(title)
-    plt.xlabel(timelabel)
-    plt.ylabel('Distance (Re)')
-    plt.savefig(filename + 'y.svg', format='svg')
-    # plt.show()
-    plt.close()
-
-    # L-shell
-
-    # xy plot
-    plt.figure(figsize=size)
-    plt.axes().set_aspect('equal', 'datalim')
-    plt.plot(xline, yline)
-    plt.title(title)
-    plt.xlabel('X (Re)')
-    plt.ylabel('Y (Re)')
-    plt.savefig(filename + 'xy.svg', format='svg')
-    # plt.show()
-    plt.close()
-
-
 def trajectory(pitch, m, Ke, q, T_final, acc, Lshell, sample, inte):
+
     if T_final is None:
         T_final = 1e9*Ke**-1
+
     t, xline, yline, zline, Vx, Vy, Vz, err_V = particle_sim(
         pitchangle=pitch, mass=m, Kinetic_energy=Ke,
         charge=q, t=T_final, accuracy=acc, L_shell=Lshell,
@@ -334,40 +164,6 @@ def trajectory(pitch, m, Ke, q, T_final, acc, Lshell, sample, inte):
 
     plot(Lshell, pitch, q, m, Ke, inte, err_V, t=t, xline=xline, yline=yline,
          zline=zline, Vx=Vx, Vy=Vy, Vz=Vz)
-
-
-# energy plots still not working right
-
-def demo():
-    m = [M_e, M_e, M_p, M_p, M_p, M_p, M_p, M_p]
-    q = [C_e, C_e, -C_e, -C_e, -C_e, -C_e, -C_e, -C_e]
-    Ke = [1e3, 1e3, 1e8, 1e8, 1e8, 1e8, 1e8, 1e8]
-    # T = [1e-5, 1, 1e-2, .2, 10, 10, .1, .1]
-    T = [1e-5, 1, 1e-2, .2, 10, 10, .1, .1]
-    acc = [1e2, 1e2, 1e2, 1e3, 1e2, 1e2, 1e4, 1e2]
-    pitch = [90, 89, 90, 89, 90, 90, 5, 5]
-    Lshell = [2.1, 1, 1.64, 1, 3, 3, 1, 1]
-    sample = [20, .01, 10, 5, 1, 1, 1, 1]
-    inte = ['boris', 'boris', 'boris', 'boris', 'boris', 'rk45',
-            'boris', 'rk45']
-
-    # takes my computer 30 mins to run all of these
-    # wow that last one takes ages
-    # why can't I parallize this? they share values so it comes out as nonsense
-
-    # Parallel(n_jobs=8, prefer="threads")(
-    #     delayed(trajectory)(pitch[i], m[i], Ke[i], q[i], T[i],
-    #                         acc[i], Lshell[i], sample[i], inte[i]) \
-    # for i in [0, 2, 3, 4, 5, 6])
-    # the short gyro and electron bounce period cause problems
-    # try reoganizing and doing them in serial while the others are parallel
-
-    for i in range(0, 8):
-        trajectory(pitch[i], m[i], Ke[i], q[i], T[i],
-                   acc[i], Lshell[i], sample[i], inte[i])
-
-        # len(m)):  # remeber to set this back to len(m)
-
 
 def trajectory_generator(par=True):
     L = np.linspace(2, 10, 7)
@@ -404,5 +200,5 @@ def trajectory_generator(par=True):
             for c in range(len(pitch)) for d in range(len(L)))
 
 
-demo()
+#demo()
 # trajectory_generator()
