@@ -15,8 +15,6 @@ from joblib import Parallel
 from joblib import delayed
 
 
-
-
 startTime = datetime.now()
 # constants
 Re = 6.371e6
@@ -33,8 +31,6 @@ C_e = -1.60218e-19  # C
 # magnetic field at the top of the atmopshere in nd terms
 za = (Re + 1e5)/Re
 Ba = np.linalg.norm(trsfrm.B(0, 0, za))
-
-#seperate plots and save
 
 
 def particle_sim(L_shell=2,
@@ -55,16 +51,9 @@ def particle_sim(L_shell=2,
                  # note accuracy*sampling cannot be greater than 1
                  method='boris',  # valid choices are 'boris','rk45'
                                   # and 'euler'
-                 _2dplots=True,  # generate 2d plots or not
-                 Save=False,  # when True saves large files with path to avoid
-                 # repeated simulations
-                 integrate=True,  # run integration again or load
                  # previously generated trajectories.
                  losscone=True):  # True to ditch atmoshperic particles
     # False to keep them, like for demo()
-
-
-    
 
     # internally all angles are in radians
     latitude = math.radians(latitude)
@@ -112,26 +101,25 @@ def particle_sim(L_shell=2,
 
     err_V = None
     # choose integrator based of input
-    if integrate is True:
-        if method == 'rk45':
-            xline, yline, zline, Vx, Vy, Vz, T = integrator.\
-                rk45_nd(dT, tp, S0, qsign)
-        elif method == 'euler':
-            xline, yline, zline, Vx, Vy, Vz, T = integrator.\
-                euler_cromer(dT, tp, S0, qsign)
-        elif method == 'boris':
-            xline, yline, zline, Vx, Vy, Vz, T,err_V = integrator.\
-                boris(dT, sampling, S0, tp, qsign)
-        else:
-            print('invalid method')
-        t = T*tc
-        
+    if method == 'rk45':
+        xline, yline, zline, Vx, Vy, Vz, T = integrator.\
+            rk45_nd(dT, tp, S0, qsign)
+    elif method == 'euler':
+        xline, yline, zline, Vx, Vy, Vz, T = integrator.\
+            euler_cromer(dT, tp, S0, qsign)
+    elif method == 'boris':
+        xline, yline, zline, Vx, Vy, Vz, T, err_V = integrator.\
+            boris(dT, sampling, S0, tp, qsign)
+    else:
+        print('invalid method')
+    t = T*tc
+
     if type(err_V) != np.ndarray:
-        
-        if err_V == None:
-            V = np.linalg.norm(np.array((Vx,Vy,Vz)),axis = 0)
-            err_V = abs(V[0]- V)/V[0]
-        #print('integrator done at time ', datetime.now() - startTime)
+
+        if err_V is None:
+            V = np.linalg.norm(np.array((Vx, Vy, Vz)), axis=0)
+            err_V = abs(V[0] - V)/V[0]
+        # print('integrator done at time ', datetime.now() - startTime)
         '''
         if Save is True:
             # save to text
@@ -177,9 +165,9 @@ def save(t, xline, yline, zline, Vx, Vy, Vz, L_shell, pitchangle,
     # make directory for plots
     if not os.path.exists(filename):
         os.mkdir(filename)
-    #tc = abs((mass/(charge*Bc)))
-    #T = t/tc
-    
+    # tc = abs((mass/(charge*Bc)))
+    # T = t/tc
+
     points = np.column_stack([xline[~np.isnan(xline)], yline[~np.isnan(yline)],
                               zline[~np.isnan(zline)]])
     out_filename = (filename + 'xyz.vtk')
@@ -199,11 +187,11 @@ def save(t, xline, yline, zline, Vx, Vy, Vz, L_shell, pitchangle,
     return
 
 
-def plot(L_shell, pitchangle, charge, m, Kinetic_energy, method, err_V, units='s',
-         t = None, xline = None, yline = None,zline = None,
-         Vx = None, Vy = None, Vz = None):
+def plot(L_shell, pitchangle, charge, m, Kinetic_energy, method, err_V,
+         units='s', t=None, xline=None, yline=None, zline=None, Vx=None,
+         Vy=None, Vz=None):
     # valid choices for units are 's' 'Tc' 'min' 'days
-    # x = None passes nothing if compute was not run, 
+    # x = None passes nothing if compute was not run,
     # and pull from save if exists
     # but if a save exists, new compute get's priority for plot
 
@@ -216,23 +204,22 @@ def plot(L_shell, pitchangle, charge, m, Kinetic_energy, method, err_V, units='s
     title = '''pitch = {}\N{DEGREE SIGN} q/m = {:,}, L = {},
         Ke = {:.1e}eV, Method = {}''' \
         .format(pitchangle, qm_rat, L_shell, Kinetic_energy, method)
-        
+
     # read in values if needed
-    #check if file exists already?
-    #how to check if other arrays exist?
-    #if t == none then no array exists and need to read
+    # check if file exists already?
+    # how to check if other arrays exist?
+    # if t == none then no array exists and need to read
     if t is None:
         if os.path.exists(filename):
             t, xline, yline, zline, Vx, Vy, Vz = np.loadtxt(
                 filename+'trajectory.txt')
         elif not os.path.exists(filename):
             print('no such value was computed or saved')
-            
+
     elif t is not None:
-        #need to check if folder exists or not
+        # need to check if folder exists or not
         if not os.path.exists(filename):
             os.mkdir(filename)
-    
 
     Ke = .5 * m * (np.power(Vx, 2) + np.power(Vy, 2) + np.power(Vz, 2))
     Ke0 = Ke[0]
@@ -252,10 +239,10 @@ def plot(L_shell, pitchangle, charge, m, Kinetic_energy, method, err_V, units='s
         timelabel = 'Time (days)'
         T_plot = t/60/60/24
     else:
-        print('invalid choice for units\nuse s, Tc, min, or days\n \
-              defaulting to Tc')
-        T_plot = T
-        timelabel = 'Time (Tc)'
+        print(
+            'invalid choice for units use s, Tc, min, or days defaulting to s')
+        timelabel = 'Time (seconds)'
+        T_plot = t
     # getting V parrallel and V perpendicular
     (Vparrallel, Vperpendicular, V_perp)\
         = trsfrm.VparVperp(xline, yline, zline, Vx, Vy, Vz)
@@ -266,14 +253,12 @@ def plot(L_shell, pitchangle, charge, m, Kinetic_energy, method, err_V, units='s
 
     # title = 'pitch = {}, q/m ={}'.format(pitchangle, m)
     # energy plot
-    
 
     size = [12.8, 9.6]
 
-    
     plt.figure(figsize=size)
-    
-    plt.plot(T_plot,err_E,label='error in energy') 
+
+    plt.plot(T_plot, err_E, label='error in energy')
     plt.title(title)
     plt.legend()
     plt.xlabel(timelabel)
@@ -298,7 +283,6 @@ def plot(L_shell, pitchangle, charge, m, Kinetic_energy, method, err_V, units='s
     # plt.show()
     plt.close()
 
-
     plt.figure(figsize=size)
     # plt.plot(T_plot, xline)
     # plt.plot(T_plot, yline)
@@ -322,7 +306,7 @@ def plot(L_shell, pitchangle, charge, m, Kinetic_energy, method, err_V, units='s
     plt.savefig(filename + 'y.svg', format='svg')
     # plt.show()
     plt.close()
- 
+
     # L-shell
 
     # xy plot
@@ -337,19 +321,19 @@ def plot(L_shell, pitchangle, charge, m, Kinetic_energy, method, err_V, units='s
     plt.close()
 
 
-def trajectory(pitch,m,Ke,q,T,acc,Lshell,sample,inte):
-    t = 1e9*Ke**-1
-    t, xline, yline, zline, Vx, Vy, Vz,err_V = particle_sim(
-            pitchangle=pitch, mass=m, Kinetic_energy=Ke,
-            charge=q, t=T, accuracy=acc, L_shell=Lshell,
-            sampling=sample, method=inte, losscone=False)
-    
+def trajectory(pitch, m, Ke, q, T_final, acc, Lshell, sample, inte):
+    if T_final is None:
+        T_final = 1e9*Ke**-1
+    t, xline, yline, zline, Vx, Vy, Vz, err_V = particle_sim(
+        pitchangle=pitch, mass=m, Kinetic_energy=Ke,
+        charge=q, t=T_final, accuracy=acc, L_shell=Lshell,
+        sampling=sample, method=inte, losscone=False)
 
     save(t, xline, yline, zline, Vx, Vy, Vz, Lshell, pitch, q,
-          m, Ke, inte)
+         m, Ke, inte)
 
-    plot(Lshell, pitch, q, m, Ke, inte,err_V, t=t, xline=xline, yline=yline,
-          zline=zline, Vx=Vx, Vy=Vy, Vz=Vz)
+    plot(Lshell, pitch, q, m, Ke, inte, err_V, t=t, xline=xline, yline=yline,
+         zline=zline, Vx=Vx, Vy=Vy, Vz=Vz)
 
 
 # energy plots still not working right
@@ -366,39 +350,37 @@ def demo():
     sample = [20, .01, 10, 5, 1, 1, 1, 1]
     inte = ['boris', 'boris', 'boris', 'boris', 'boris', 'rk45',
             'boris', 'rk45']
-    
-    
 
     # takes my computer 30 mins to run all of these
     # wow that last one takes ages
     # why can't I parallize this? they share values so it comes out as nonsense
-    
+
     # Parallel(n_jobs=8, prefer="threads")(
     #     delayed(trajectory)(pitch[i], m[i], Ke[i], q[i], T[i],
     #                         acc[i], Lshell[i], sample[i], inte[i]) \
-                              # for i in [0, 2, 3, 4, 5, 6])
+    # for i in [0, 2, 3, 4, 5, 6])
     # the short gyro and electron bounce period cause problems
-    #try reoganizing and doing them in serial while the others are parallel
+    # try reoganizing and doing them in serial while the others are parallel
 
-    for i in range(0,8):
+    for i in range(0, 8):
         trajectory(pitch[i], m[i], Ke[i], q[i], T[i],
-                        acc[i], Lshell[i], sample[i], inte[i])
-                       
+                   acc[i], Lshell[i], sample[i], inte[i])
+
         # len(m)):  # remeber to set this back to len(m)
 
 
-def trajectory_generator(par = True):
+def trajectory_generator(par=True):
     L = np.linspace(2, 10, 7)
-    #pitch = np.linspace(90, 10, 8)
+    # pitch = np.linspace(90, 10, 8)
     pitch = [90]
     m = [M_p, M_e]
     q = [-C_e, C_e]
-    #K = np.logspace(8, 2, 7)
+    # K = np.logspace(8, 2, 7)
     K = [1e8]
     T = 1
-    acc= 1e1
-    
-    if par == False:
+    acc = 1e1
+
+    if par is False:
         for a in range(0, len(m)):  # skip electron for now
             for b in range(0, len(K)):
                 for c in range(0, len(pitch)):
@@ -406,16 +388,21 @@ def trajectory_generator(par = True):
                         # print(a+b+c+d)
                         tshell = 1e9*K[b]**-1
                         # print(tshell)
-                        particle_sim(L_shell=L[d], pitchangle=pitch[c], mass=m[a],
-                                      charge=q[a],  Kinetic_energy=K[b], t=tshell)
-    #                 #I think the longest ones will take around 8 days?
-    #use joblib to speed up compute time
-    if par == True:
+                        particle_sim(L_shell=L[d], pitchangle=pitch[c],
+                                     mass=m[a], charge=q[a],
+                                     Kinetic_energy=K[b], t=tshell)
+
+    # use joblib to speed up compute time
+    # carful when running this, I think if memory gets chached, it will break
+    # energy error plots
+    if par is True:
+        T = None
         Parallel(n_jobs=-2, prefer='threads')(
-                delayed(trajectory)(pitch[c], m[a], K[b], q[a], T, acc, 
-                 L[d],5, 'boris') for a in range(len(m)) for b in range(len(K))
-                for c in range(len(pitch)) for d in range(len(L)))
+            delayed(trajectory)(pitch[c], m[a], K[b], q[a], T, acc,
+                                L[d], 5, 'boris') for a in range(1, len(m))
+            for b in range(len(K))
+            for c in range(len(pitch)) for d in range(len(L)))
 
-#demo()
-#trajectory_generator()
 
+demo()
+# trajectory_generator()
