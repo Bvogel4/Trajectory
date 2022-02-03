@@ -3,7 +3,6 @@
 # computes the arrays using the Integrators module
 # save to save plaintext and .vtk for paraview
 # plot gernertes saved images to look at simualation parameters
-import math
 import numpy as np
 from datetime import datetime
 
@@ -23,6 +22,7 @@ Re = 6.371e6
 M = 8.22e22
 # magnetic moment M = 8.22x10^22 \A m^2 for earth
 u0 = 1.25663706212e-6
+c = 3e8
 # critical B value
 Bc = u0*M/(4*np.pi*Re**3)
 
@@ -35,32 +35,37 @@ Ba = np.linalg.norm(trsfrm.B(0, 0, za))
 
 
 def particle_sim(L_shell=2,
-                 pitchangle=60,
-                 latitude=0,  # all angles in degrees for input
-                 longitude=0,
-                 phase=0,
-                 Kinetic_energy=1e8,
-                 # in eV. Defaults to high energy to shorten drift period
-                 # default model = alpha particle
+                 pitch_angle=60,
                  mass=M_p,  # in Kg
                  charge=-C_e,  # in coulumbs
                  t=1e1,  # time in seconds
-                 # 1 tp corresponds to the time to go 1 radian
-                 # around the gyro radius at L = 1
+                 Kinetic_energy=1e8,
+                 # in eV. Defaults to high energy to shorten drift period
+                 
+                 method='boris',# valid choices are 'boris','rk45'
+                 # and 'euler__cromer'
                  accuracy=1e3,  # inverse time step in dimensionless form
-                 sampling=5,  # points per tc
+                 sampling=30,   # points per tc
                  # note accuracy*sampling cannot be greater than 1
-                 method='boris',  # valid choices are 'boris','rk45'
-                                  # and 'euler'
-                 # previously generated trajectories.
-                 losscone=True):  # True to ditch atmoshperic particles
-    # False to keep them, like for demo()
+                 losscone=True,# True to ditch atmoshperic particles
+                 # False to keep them, like for demo()
+                 latitude=0,  # all angles in degrees for input
+                 longitude=0,
+                 phase=0):
+    
 
+    
+    #sampling modification
+    sampling = sampling / 6
+    
+    sampling = sampling / L_shell**3
+    accuracy = accuracy / L_shell**3
+    
     # internally all angles are in radians
-    latitude = math.radians(latitude)
-    longitude = math.radians(longitude)
-    phase = math.radians(phase)
-    pitch = math.radians(pitchangle)
+    latitude = np.radians(latitude)
+    longitude = np.radians(longitude)
+    phase = np.radians(phase)
+    pitch = np.radians(pitch_angle)
     # covert energy to joules
     Kinetic_energy = Kinetic_energy * 1.602176565e-19
 
@@ -71,6 +76,10 @@ def particle_sim(L_shell=2,
                                                L_shell, latitude, longitude,
                                                mass, Re)
     S0 = np.array([x0, y0, z0, vx0, vy0, vz0])
+    v = np.linalg.norm([vx0,vy0,vz0])
+    beta = v/c
+    gamma = (1-beta**2)*-.5
+    mass = gamma*mass
     # convert into new dimensionless units
     # need constants first
     # re is at the top
@@ -87,6 +96,9 @@ def particle_sim(L_shell=2,
     tp = t/(tc)
     # check loss cone angle and exit if angle is too high
 
+
+
+    
     if losscone is True:
         B = np.linalg.norm(trsfrm.B(S0[0], S0[1], S0[2]))
         term = np.sqrt(B/Ba)
@@ -100,70 +112,43 @@ def particle_sim(L_shell=2,
             print('particle will hit the atmosphere, skipping')
             return
 
-    err_V = None
     # choose integrator based of input
     if method == 'rk45':
         xline, yline, zline, Vx, Vy, Vz, T = integrator.\
             rk45_nd(dT, tp, S0, qsign)
-    elif method == 'euler':
+    elif method == 'euler_cromer':
         xline, yline, zline, Vx, Vy, Vz, T = integrator.\
             euler_cromer(dT, tp, S0, qsign)
     elif method == 'boris':
-        xline, yline, zline, Vx, Vy, Vz, T, err_V = integrator.\
+        xline, yline, zline, Vx, Vy, Vz, T = integrator.\
             boris(dT, sampling, S0, tp, qsign)
     else:
         print('invalid method')
+        return
     t = T*tc
-
-    if type(err_V) != np.ndarray:
-
-        if err_V is None:
-            V = np.linalg.norm(np.array((Vx, Vy, Vz)), axis=0)
-            err_V = abs(V[0] - V)/V[0]
         # print('integrator done at time ', datetime.now() - startTime)
-        '''
-        if Save is True:
-            # save to text
-            # v = v*tc to get in re/s
-            arr_out = np.column_stack((t, xline, yline, zline, Vx, Vy, Vz))
-            # add comment for savetext
-            np.savetxt(filename + 'trajectory.txt', arr_out)
-            # colums are time seconds, x,y,z in Vx, in re/s
-    # load data
-    if integrate is False:
-        trajectory = np.loadtxt(filename+'trajectory.txt')
-        t, xline, yline, zline, Vx, Vy, Vz = trajectory.T
-
-    if _2dplots is True:
-        # Bc = u0*M/(4*np.pi*Re**3)
-        # tc = abs(mass/(charge*Bc))
-        # t = T*tc
-        plots.plotter(xline, yline, zline, Vx, Vy, Vz, filename,
-                      title, T, t, method, pitchangle, mass, Re, 's')
-        print('plotter done at time ', datetime.now() - startTime)
-        '''
-    return t, xline, yline, zline, Vx, Vy, Vz, err_V
+    return t, xline, yline, zline, Vx, Vy, Vz
 
 
 # information on particle perdiods can be found in period_info.pdf
 # lists to generate various trajectory examples
 
 
-def trajectory(pitch, m, Ke, q, T_final, acc, Lshell, sample, inte):
+def trajectory(pitch_angle, mass, Kinetic_energy, charge, t, accuracy, L_shell, sampling, method):
 
-    if T_final is None:
-        T_final = 1e9*Ke**-1
+    if t is None:
+        t = 1e9*Kinetic_energy
 
-    t, xline, yline, zline, Vx, Vy, Vz, err_V = particle_sim(
-        pitchangle=pitch, mass=m, Kinetic_energy=Ke,
-        charge=q, t=T_final, accuracy=acc, L_shell=Lshell,
-        sampling=sample, method=inte, losscone=False)
+    t, xline, yline, zline, Vx, Vy, Vz = particle_sim(
+        pitch_angle, mass, Kinetic_energy,
+        charge, t, accuracy, L_shell,
+        sampling, method, losscone=False)
 
-    save(t, xline, yline, zline, Vx, Vy, Vz, Lshell, pitch, q,
-         m, Ke, inte)
+    save(t, xline, yline, zline, Vx, Vy, Vz, L_shell, pitch_angle, charge,
+         mass, Kinetic_energy, method)
 
-    plot(Lshell, pitch, q, m, Ke, inte, err_V, t=t, xline=xline, yline=yline,
-         zline=zline, Vx=Vx, Vy=Vy, Vz=Vz)
+    plot(L_shell, pitch_angle, charge, mass, Kinetic_energy, method, t, xline, yline,
+         zline, Vx, Vy, Vz)
 
 def trajectory_generator(par=True):
     L = np.linspace(2, 10, 7)

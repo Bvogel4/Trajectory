@@ -1,33 +1,83 @@
+
+import numpy as np
+from joblib import Parallel
+from joblib import delayed
+from datetime import datetime
+
+
+import transformations as trsfrm
 from particle_sim import particle_sim
 from output import save, plot
 
+
+startTime = datetime.now()
+
+#t, xline, yline, zline, Vx, Vy, Vz = None, None, None, None, None, None, None
+
+
+def demo(L_shell):
+
+    #calculate estimated bouce and drift period
+    R = L_shell # only valid when starting at equator
+    pitch = np.radians(pitch_angle)
+    # covert energy to joules
+    Ke = Kinetic_energy * 1.602176565e-19
+    phase,latitude,longitude = 0,0,0
+    x0, y0, z0, vx0, vy0, vz0 = trsfrm.ctd2car(pitch,
+                                               phase, Ke,
+                                               L_shell, latitude, longitude,
+                                               mass, Re)
+    v = np.linalg.norm([vx0,vy0,vz0])
+    beta = v/c
+    #print(R,v,beta)
+    tb = trsfrm.t_b(R,beta,np.radians(pitch_angle))
+    #print('tb',tb)
+    if mass == M_p:
+        Cd = 8.481
+    elif mass == M_e:
+        Cd = 1.557e4
+    else:
+        print('drift calculation only for electrons and protons')
+    td = trsfrm.t_d(R, beta, np.radians(pitch_angle),Cd)
+    
+    print('bounce period is {:.2e} \ndrift period is {:.2e}'.format(tb,td))
+    
+    
+    #print("Computing trajectory using " + method)
+    T, xline, yline, zline, Vx, Vy, Vz = particle_sim(
+        L_shell, pitch_angle, mass,charge, td/10, Kinetic_energy, method, accuracy,
+        sampling, losscone=False)
+    print('compute for {} done at time {}s'.format(method, datetime.now() - startTime))
+    # save(t, xline, yline, zline, Vx, Vy, Vz, Lshell, pitch, q,
+    #       m, Ke, method)
+    plot(L_shell, pitch_angle, charge, mass, Kinetic_energy, method, T,
+          xline, yline, zline,
+          Vx, Vy, Vz)
+    print('plot for {} done at time {}s'.format(method, datetime.now() - startTime))
+    
+    
+
+    
+    return
+
+Re = 6.371e6
 M_p = 1.6726219e-27  # kg
-M_e = 9.10938356e-31 # kg
+M_e = 9.10938356e-31  # kg
 C_e = -1.60218e-19   # C
+c = 3e8
+mass = M_p
+charge = -C_e
+Kinetic_energy = 1e6    # eV
+pitch_angle = 89.9  # degress
+L_shell = [8]
+method = 'boris'
+accuracy = 1e+4
+sampling = 36
 
-m = M_p
-q = -C_e
-Ke = 1e8    # eV
-T = .2      # seconds
-pitch = 90. # degress
-Lshell = 3.
+for a in range(len(L_shell)):
+    demo(L_shell[a])
 
-acc = 1e+4
-sample = 5
+#for method in methods:
 
-methods = ['euler', 'boris', 'rk45']
-
-for method in methods:
-    print("Computing trajectory using " + method)
-
-    t, xline, yline, zline, Vx, Vy, Vz, err_V = particle_sim(
-        pitchangle=pitch, mass=m, Kinetic_energy=Ke,
-        charge=q, t=T, accuracy=acc, L_shell=Lshell,
-        sampling=sample, method=method)
-
-    save(t, xline, yline, zline, Vx, Vy, Vz, Lshell, pitch, q,
-         m, Ke, method)
-
-    plot(Lshell, pitch, q, m, Ke, method, err_V, t=t,
-         xline=xline, yline=yline, zline=zline,
-         Vx=Vx, Vy=Vy, Vz=Vz)
+# Parallel(n_jobs=1, prefer='threads')(delayed(demo)(L_shell[a],t[a])
+#                                       for a  in range(len( L_shell)))

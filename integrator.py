@@ -48,10 +48,10 @@ def rk45_nd(dT, tfinal, S0, qsign):
     T_span = (T[0], T[-1])  # Provide solution over this time range
     if qsign == 1:
         soln = solve_ivp(dUdt_nd, T_span, S0, method='RK45', t_eval=T,
-                         atol=1e-10, rtol=1e-10)
+                         atol=1e-13, rtol=1e-13)
     elif qsign == -1:
         soln = solve_ivp(dUdt_nd2, T_span, S0, method='RK45', t_eval=T,
-                         atol=1e-10, rtol=1e-10)
+                         atol=1e-13, rtol=1e-13)
 
     xline = soln.y[0]
     yline = soln.y[1]
@@ -129,7 +129,7 @@ def boris(dT, sampling, P, duration, qsign):
             # truncate time to keep accuracy of gyro
             arraysize = int(maxarraysize*1e9/numbersize)
             loops = int(arraysize*n)
-            #print('array has been truncated at size',8*arraysize/1e9*7,'GB')
+            print('array has been truncated at size',8*arraysize/1e9*7,'GB')
         if loops > 6.6e9:
             loops = 6.6e9
             
@@ -143,7 +143,7 @@ def boris(dT, sampling, P, duration, qsign):
         initial = True
         lon0 = np.arctan2(p[1], p[0])
         overlap = 1e-1
-
+        temp_n = n
         
         for time in (range(loops)):
             # nd and no E field
@@ -159,7 +159,12 @@ def boris(dT, sampling, P, duration, qsign):
             v = v_plus
             p += v * dT
             k = k + dT
-            if np.mod(time, n) == 0:  # only grabs every nth value for storage
+            if np.mod(time, temp_n) == 0:  # only grabs every nth value for storage
+            #consider modifying timestep and n to increase accuracy
+                # a = dt*np.pi
+                # f = int(a * lat**2)
+                # temp_n = n * f
+                # dt = dt*f
 
                 S[j, :] = p
                 V[j, :] = v
@@ -172,11 +177,7 @@ def boris(dT, sampling, P, duration, qsign):
                 theta = abs((np.arctan2(np.sqrt(x**2+y**2), z)))
                 factor = np.sin(theta)**2
                 dT = dt * factor
-                # runtime = (datetime.now() - startTime).seconds
-                # maxruntime = 1 * 60**2
-                # if (runtime) > maxruntime:
-                #     print('Max runtime reached, stopping sim')
-                #     break
+
                 if initial is True:
                     if abs(lon0 - lon) >= np.pi/2:
                         initial = False
@@ -190,6 +191,7 @@ def boris(dT, sampling, P, duration, qsign):
         return S, V, T
 
     S, V, T = loop(p, v, dT)
+    #
     # seperate coords
     xline = (S[:, 0])
     yline = (S[:, 1])
@@ -198,8 +200,16 @@ def boris(dT, sampling, P, duration, qsign):
     Vy = (V[:, 1])
     Vz = (V[:, 2])
     
-    V2 = np.linalg.norm(np.array((Vx,Vy,Vz)),axis = 0)
     
-    err_V = abs(V2[0]**2- V2**2)/V2[0]**2
+    nans = np.isnan(xline)
+    
+    
+    xline = xline[~nans]
+    yline = yline[~nans]
+    zline = zline[~nans]
+    Vx = Vx[~nans]
+    Vy = Vy[~nans]
+    Vz = Vz[~nans]
+    T = T[~nans]
 
-    return xline, yline, zline, Vx, Vy, Vz, T,err_V
+    return xline, yline, zline, Vx, Vy, Vz, T

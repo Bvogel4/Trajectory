@@ -1,3 +1,9 @@
+from particle_sim import trajectory
+
+M_p = 1.6726219e-27  # kg
+M_e = 9.10938356e-31  # kg
+C_e = -1.60218e-19   # C
+
 
 m = [M_e, M_e, M_p, M_p, M_p, M_p, M_p, M_p]
 q = [C_e, C_e, -C_e, -C_e, -C_e, -C_e, -C_e, -C_e]

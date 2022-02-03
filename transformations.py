@@ -176,3 +176,18 @@ def ctd2car(pitch, phase, Kinetic_energy, Lshell, latitude, longitude, m, Re):
     Vz = Vperpz + Vparz
 
     return x, y, z, Vx, Vy, Vz
+
+def t_b(R,beta,a_eq):  # good to .5%
+    #R0 is the distance from origin to the equatorial crossing
+    #R = R0/Re
+    #beta = v/c
+    t_b = .117*R/beta * (1-.4635* (np.sin(a_eq))**(3/4))
+    return t_b
+
+def t_d(R,beta,a_eq,Cd):
+    gamma = (1-beta**2)**(-.5)
+    #cd for e- = 1.557e4s
+    # for proton = 8.481s
+    t_d = Cd*R / (gamma*beta**2) * (1-.333* (np.sin(a_eq))**(.62))
+    return t_d
+
