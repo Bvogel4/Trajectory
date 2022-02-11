@@ -45,7 +45,7 @@ def particle_sim(L_shell=2,
                  method='boris',# valid choices are 'boris','rk45'
                  # and 'euler__cromer'
                  accuracy=1e3,  # inverse time step in dimensionless form
-                 sampling=30,   # points per tc
+                 sampling=30,   # points per gyro
                  # note accuracy*sampling cannot be greater than 1
                  losscone=True,# True to ditch atmoshperic particles
                  # False to keep them, like for demo()
@@ -56,7 +56,7 @@ def particle_sim(L_shell=2,
 
     
     #sampling modification
-    sampling = sampling / 6
+    sampling = sampling / (np.pi*2)
     
     sampling = sampling / L_shell**3
     accuracy = accuracy / L_shell**3
@@ -78,8 +78,10 @@ def particle_sim(L_shell=2,
     S0 = np.array([x0, y0, z0, vx0, vy0, vz0])
     v = np.linalg.norm([vx0,vy0,vz0])
     beta = v/c
-    gamma = (1-beta**2)*-.5
+    #print(beta)
+    gamma = (1-beta**2)**-.5
     mass = gamma*mass
+    print(gamma)
     # convert into new dimensionless units
     # need constants first
     # re is at the top

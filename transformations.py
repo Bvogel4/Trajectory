@@ -132,6 +132,7 @@ def car2ctd(x0, y0, z0, Vx0, Vy0, Vz0, m, Re):
 
 # converts back to cartesian
 def ctd2car(pitch, phase, Kinetic_energy, Lshell, latitude, longitude, m, Re):
+    #print(Lshell,latitude,Re)
     r = Lshell * np.power(np.cos(latitude), 2) * Re
     phi = np.pi/2 - latitude
     x = r * np.sin(phi) * np.cos(longitude)
@@ -139,8 +140,14 @@ def ctd2car(pitch, phase, Kinetic_energy, Lshell, latitude, longitude, m, Re):
     z = r * np.cos(phi)
     Bx, By, Bz = B(x, y, z)
     Bx, By, Bz = Bnormal(Bx, By, Bz)
-
-    V_mag = np.sqrt(2/m * Kinetic_energy)
+    c = 3e8
+    sqrt = np.sqrt(2*c**2*m + Kinetic_energy)
+    
+    V_mag = np.sqrt(Kinetic_energy) * c * sqrt / ( 
+        c**2*m + Kinetic_energy)
+    
+    print( (V_mag - np.sqrt(2/m * Kinetic_energy) ) /V_mag)
+    #V_mag = np.sqrt(2/m * Kinetic_energy)
 
     V_par = np.cos(pitch) * V_mag
     V_perp = np.sin(pitch) * V_mag
@@ -188,6 +195,6 @@ def t_d(R,beta,a_eq,Cd):
     gamma = (1-beta**2)**(-.5)
     #cd for e- = 1.557e4s
     # for proton = 8.481s
-    t_d = Cd*R / (gamma*beta**2) * (1-.333* (np.sin(a_eq))**(.62))
+    t_d = Cd/R / (gamma*beta**2) * (1-.333* np.sin(a_eq)**(.62))
     return t_d
 

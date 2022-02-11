@@ -131,7 +131,7 @@ def boris(dT, sampling, P, duration, qsign):
             loops = int(arraysize*n)
             print('array has been truncated at size',8*arraysize/1e9*7,'GB')
         if loops > 6.6e9:
-            loops = 6.6e9
+            loops = 6*10**9
             
         S = np.zeros((arraysize, 3), dtype=store_type)
         S[:] = np.nan

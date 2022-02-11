@@ -29,8 +29,9 @@ def demo(L_shell):
                                                mass, Re)
     v = np.linalg.norm([vx0,vy0,vz0])
     beta = v/c
+    print(beta)
     #print(R,v,beta)
-    tb = trsfrm.t_b(R,beta,np.radians(pitch_angle))
+    tb = trsfrm.t_b(R,beta,pitch)
     #print('tb',tb)
     if mass == M_p:
         Cd = 8.481
@@ -45,7 +46,7 @@ def demo(L_shell):
     
     #print("Computing trajectory using " + method)
     T, xline, yline, zline, Vx, Vy, Vz = particle_sim(
-        L_shell, pitch_angle, mass,charge, td/10, Kinetic_energy, method, accuracy,
+        L_shell, pitch_angle, mass,charge, td, Kinetic_energy, method, accuracy,
         sampling, losscone=False)
     print('compute for {} done at time {}s'.format(method, datetime.now() - startTime))
     # save(t, xline, yline, zline, Vx, Vy, Vz, Lshell, pitch, q,
@@ -67,11 +68,11 @@ C_e = -1.60218e-19   # C
 c = 3e8
 mass = M_p
 charge = -C_e
-Kinetic_energy = 1e6    # eV
-pitch_angle = 89.9  # degress
-L_shell = [8]
+Kinetic_energy = 1e8    # eV
+pitch_angle = 90  # degress
+L_shell = [5]
 method = 'boris'
-accuracy = 1e+4
+accuracy = 1e+2
 sampling = 36
 
 for a in range(len(L_shell)):
