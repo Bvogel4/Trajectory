@@ -145,9 +145,7 @@ def ctd2car(pitch, phase, Kinetic_energy, Lshell, latitude, longitude, m, Re):
     
     V_mag = np.sqrt(Kinetic_energy) * c * sqrt / ( 
         c**2*m + Kinetic_energy)
-    
-    print( (V_mag - np.sqrt(2/m * Kinetic_energy) ) /V_mag)
-    #V_mag = np.sqrt(2/m * Kinetic_energy)
+
 
     V_par = np.cos(pitch) * V_mag
     V_perp = np.sin(pitch) * V_mag
@@ -157,7 +155,8 @@ def ctd2car(pitch, phase, Kinetic_energy, Lshell, latitude, longitude, m, Re):
     Vparz = Bz * V_par
     B0 = np.array([Bx, By, Bz])
     r = (x, y, z)
-    rPar = (np.dot(r, B0)/(np.dot(B0, B0))) * B0
+    rPar = (np.dot(r, B0) \
+            /(np.dot(B0, B0))) * B0
     rPerp = r - rPar
     rperp_mag = np.sqrt(np.power(rPerp[0], 2) + np.power(rPerp[1], 2)
                         + np.power(rPerp[2], 2))

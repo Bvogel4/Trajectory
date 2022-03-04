@@ -2,10 +2,15 @@
 import numpy as np
 from numba import njit
 from scipy.integrate import solve_ivp
+import multiprocessing
+import psutil
 from transformations import B as B_nd_dipole
 #from datetime import datetime
 
-
+n_threads = multiprocessing.cpu_count()
+        
+mem_t,mem_avail,mem_perc,mem_use,mem_free = psutil.virtual_memory()
+ 
 #startTime = datetime.now()
 
 
@@ -115,10 +120,14 @@ def boris(dT, sampling, P, duration, qsign):
         there are two 2darrays with added axis of length 3
         and another one for time
         #note that parallel computing requires additional ram for each job
+        
+        
+        
         '''
-        maxarraysize = 1 /7  # GB !!!!!!
-        '''
-        '''
+
+        
+        maxarraysize = mem_t/n_threads/1e9 /7  # GB 7 arrays in total
+        
         store_type = np.float64
         # changing this to np.float 32 is noticable in electron gyros
 
@@ -142,7 +151,7 @@ def boris(dT, sampling, P, duration, qsign):
         k = 0  # time
         initial = True
         lon0 = np.arctan2(p[1], p[0])
-        overlap = 1e-1
+        overlap = 1e-4
         temp_n = n
         
         for time in (range(loops)):
@@ -160,11 +169,12 @@ def boris(dT, sampling, P, duration, qsign):
             p += v * dT
             k = k + dT
             if np.mod(time, temp_n) == 0:  # only grabs every nth value for storage
-            #consider modifying timestep and n to increase accuracy
-                # a = dt*np.pi
-                # f = int(a * lat**2)
-                # temp_n = n * f
-                # dt = dt*f
+            # modifying timestep and n to increase accuracy based on latitude
+                R = (p[1]**2 + p[2]**2)**(.5)
+                lat = np.arcsin(p[2]/R)
+                f =  abs(int( np.pi/2/(np.abs(lat) - np.pi/2) ) )
+                temp_n = n * f
+                dT = dt/f
 
                 S[j, :] = p
                 V[j, :] = v
@@ -173,10 +183,10 @@ def boris(dT, sampling, P, duration, qsign):
                 lon = np.arctan2(p[1], p[0])
                 # code that stops copmutation after a full drift period
                 # checks to see if particle has left initial region
-                x, y, z = p[0], p[1], p[2]
-                theta = abs((np.arctan2(np.sqrt(x**2+y**2), z)))
-                factor = np.sin(theta)**2
-                dT = dt * factor
+                #x, y, z = p[0], p[1], p[2]
+                #theta = abs((np.arctan2(np.sqrt(x**2+y**2), z)))
+                #factor = np.sin(theta)**2
+                #dT = dt * factor
 
                 if initial is True:
                     if abs(lon0 - lon) >= np.pi/2:
@@ -189,7 +199,7 @@ def boris(dT, sampling, P, duration, qsign):
                         #print('1 drift period completed. Stopping simulation.')
                         break
         return S, V, T
-
+    
     S, V, T = loop(p, v, dT)
     #
     # seperate coords

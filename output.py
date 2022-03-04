@@ -107,9 +107,9 @@ def plot(L_shell, pitch_angle, charge, mass, Kinetic_energy, method,
             
     #plot about a thousands points instead of billions
     length = len(t)
-    if length > 5000:
+    if length > 100000:
         
-        N = int(length/5000)
+        N = int(length/100000)
 
         t, xline, yline, zline, Vx, Vy, Vz, = t[::N], xline[::N], yline[::N], \
             zline[::N], Vx[::N], Vy[::N], Vz[::N]
