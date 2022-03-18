@@ -42,9 +42,11 @@ There are three main functions that can be used:
 
 The results of these demos will be be found in [this folder](output).
 
-# Comparison of algorithims
+# Comparison of algorithims and Verification/Validation
 
 To compare methods a metric that measure the error in energy per unit time was used, called compute efficeincy. Comparing this value for differnt methods and pitch agnles serces to quantify the quality of the algorithims. (lower value is better)
+
+See also [demo_method.py](https://github.com/Bvogel4/Trajectory/blob/main/demo_method.py).
 
 | Pitch angle | Boris .01 | Boris .0001 | rk45   |
 |-------------|-----------|-------------|--------|
