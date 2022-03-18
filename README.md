@@ -1,9 +1,12 @@
+
+https://user-images.githubusercontent.com/2690814/159080313-f478efe6-bcf1-409e-85c2-49b82a3b6918.mp4
+
+
 # Overview
 
 This program simulates a charged particle's relativistic motion in dipole magnetic field.
 
 Three different options are available for numerical integration: [Boris](https://books.google.com/books?id=S2lqgDTm6a4C&q=Borris#v=onepage&q=Boris&f=false), [Runge-Kutta-Fehlberg](https://ntrs.nasa.gov/api/citations/19700031412/downloads/19700031412.pdf), and [Euler-Cromer](https://aapt.scitation.org/doi/10.1119/1.12478)
-
 
 `rk45` ues the Python [SciPy](https://docs.scipy.org/doc/scipy/reference/generated/scipy.integrate.RK45.html) implentation.
 
