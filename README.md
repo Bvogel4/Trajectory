@@ -45,5 +45,5 @@ To compare methods a metric that measure the error in energy per unit time was u
 | 90          | 6.3e-14   | 3.4e-15     | 3.5e-9 |
 | 10          | 2.1       | 2.9e-9      | 4.3e-9 |
 
-As can be seen from the table, the Boris completly outclasses rk45 at equatorial orbits, and still remains competitive at low pitch angles. 
+As can be seen from the table, the Boris method completly outclasses rk45 at equatorial orbits, and still remains competitive at low pitch angles. 
 
