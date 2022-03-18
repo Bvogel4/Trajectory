@@ -23,7 +23,10 @@ Initial conditions are specified in radius, latitude, longitude, pitch angle, ki
 ```
 git clone https://github.com/Bvogel4/Trajectory
 cd Trajectory
-python3 
+python3 demo_method.py 
+python3 demo_bounce.py 
+python3 demo_drift.py 
+python3 trajectory_generator.py 
 ```
 
 # Main Functions
