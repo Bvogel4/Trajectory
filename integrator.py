@@ -5,13 +5,10 @@ from scipy.integrate import solve_ivp
 import multiprocessing
 import psutil
 from transformations import B as B_nd_dipole
-#from datetime import datetime
 
+#cpu and memory management
 n_threads = multiprocessing.cpu_count()
-        
-mem_t,mem_avail,mem_perc,mem_use,mem_free = psutil.virtual_memory()
- 
-#startTime = datetime.now()
+mem_t, mem_avail, mem_perc, mem_use, mem_free = psutil.virtual_memory()
 
 
 @njit
@@ -25,7 +22,6 @@ def dUdt_nd(T, U):
     DvDT = np.cross(V, B)  # note cross only works in cartesian
 
     return U[3], U[4], U[5], DvDT[0], DvDT[1], DvDT[2]  # dVxdt, dVydt, dVzdt
-# need second function for negative charges
 
 
 @njit
@@ -46,7 +42,7 @@ def rk45_nd(dT, tfinal, S0, qsign):
     # create a t array for solution
     n = int(tfinal/dT)
     T = dT * np.linspace(0, n, n)  # need to find appropiate dT and T ranges
-    
+
     #need to cap arraysize
     arraysize = len(T)
     #if 7*arraysize*8 >1e9
@@ -106,7 +102,6 @@ def boris(dT, sampling, P, duration, qsign):
 
     @njit(nogil=True)
     def loop(p, v, dt):
-        #  non adaptive time step struggles with high latitudes > ~70
         dT = dt
         # allows for more precise computation without storing all the values
         n = int((1/sampling/dT))
@@ -120,14 +115,10 @@ def boris(dT, sampling, P, duration, qsign):
         there are two 2darrays with added axis of length 3
         and another one for time
         #note that parallel computing requires additional ram for each job
-        
-        
-        
         '''
 
-        
-        maxarraysize = mem_t/n_threads/1e9 /7  # GB 7 arrays in total
-        
+        maxarraysize = mem_t/n_threads/1e9 / 7  # GB 7 arrays in total
+
         store_type = np.float64
         # changing this to np.float 32 is noticable in electron gyros
 
@@ -138,10 +129,10 @@ def boris(dT, sampling, P, duration, qsign):
             # truncate time to keep accuracy of gyro
             arraysize = int(maxarraysize*1e9/numbersize)
             loops = int(arraysize*n)
-            print('array has been truncated at size',8*arraysize/1e9*7,'GB')
+            print('array has been truncated at size', 8*arraysize/1e9*7, 'GB')
         if loops > 6.6e9:
             loops = 6*10**9
-            
+
         S = np.zeros((arraysize, 3), dtype=store_type)
         S[:] = np.nan
         V = np.copy(S)
@@ -153,7 +144,7 @@ def boris(dT, sampling, P, duration, qsign):
         lon0 = np.arctan2(p[1], p[0])
         overlap = 1e-4
         temp_n = n
-        
+
         for time in (range(loops)):
             # nd and no E field
             Bx, By, Bz = B_nd_dipole(p[0], p[1], p[2])
@@ -168,11 +159,12 @@ def boris(dT, sampling, P, duration, qsign):
             v = v_plus
             p += v * dT
             k = k + dT
-            if np.mod(time, temp_n) == 0:  # only grabs every nth value for storage
-            # modifying timestep and n to increase accuracy based on latitude
+            if np.mod(time, temp_n) == 0:  # only grabs every nth # for storage
+                # modifying dt and n to increase accuracy based on latitude
                 R = (p[1]**2 + p[2]**2)**(.5)
                 lat = np.arcsin(p[2]/R)
-                f =  abs(int( np.pi/2/(np.abs(lat) - np.pi/2) ) )
+                f = abs(int(np.pi/2/(np.abs(lat) - np.pi/2)))
+                #f = 1000*np.exp(-1*np.abs( (lat- np.pi/2)/5)) + 1
                 temp_n = n * f
                 dT = dt/f
 
@@ -196,10 +188,11 @@ def boris(dT, sampling, P, duration, qsign):
                     dlon = abs(lon - lon0 - overlap)
                     if dlon <= 1e-2:
                         # print(lon0,lon)
-                        #print('1 drift period completed. Stopping simulation.')
+                        #print('1 drift period completed.
+                        # Stopping simulation.')
                         break
         return S, V, T
-    
+
     S, V, T = loop(p, v, dT)
     #
     # seperate coords
@@ -209,11 +202,9 @@ def boris(dT, sampling, P, duration, qsign):
     Vx = (V[:, 0])
     Vy = (V[:, 1])
     Vz = (V[:, 2])
-    
-    
+
     nans = np.isnan(xline)
-    
-    
+
     xline = xline[~nans]
     yline = yline[~nans]
     zline = zline[~nans]

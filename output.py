@@ -5,6 +5,7 @@ from matplotlib import pyplot as plt
 from vtk_export import vtk_export
 import transformations as trsfrm
 
+
 def save(t, xline, yline, zline, Vx, Vy, Vz, L_shell, pitch_angle,
          charge, mass, Kinetic_energy, method):
 
@@ -27,8 +28,7 @@ def save(t, xline, yline, zline, Vx, Vy, Vz, L_shell, pitch_angle,
 
     # TODO: Output file should have 7 columns
     # Change velocities to R_E/s
-    
-    
+
     Re = 6.371e6
     # Re = 1 # radius of earth in m
     M = 8.22e22
@@ -37,16 +37,15 @@ def save(t, xline, yline, zline, Vx, Vy, Vz, L_shell, pitch_angle,
     # critical B value
     Bc = u0*M/(4*np.pi*Re**3)
     tc = abs((mass/(charge*Bc)))
-    
+
     Vx = Vx/tc
     Vy = Vy/tc
     Vz = Vz/tc
-    
-    #print("Saving " + out_filename)
-    np.savetxt(out_filename, arr_out, header=
-        't [s], x [R_E], y [R_E], z [R_E], vx [R_E/s], vy [R_E/s], vz [R_E/s]')
-    #print("Saved " + out_filename)
 
+    #print("Saving " + out_filename)
+    np.savetxt(out_filename, arr_out,
+               header='t [s], x [R_E], y [R_E], z [R_E], vx [R_E/s], vy [R_E/s], vz [R_E/s]')
+    #print("Saved " + out_filename)
 
     # VTK
     out_filename = out_dir + 'xyz.vtk'
@@ -69,7 +68,7 @@ def save(t, xline, yline, zline, Vx, Vy, Vz, L_shell, pitch_angle,
 
 
 def plot(L_shell, pitch_angle, charge, mass, Kinetic_energy, method,
-          t=None, xline=None, yline=None, zline=None, Vx=None,
+         t=None, xline=None, yline=None, zline=None, Vx=None,
          Vy=None, Vz=None, units='s'):
     # valid choices for units are 's' 'Tc' 'min' 'days
     # x = None passes nothing if compute was not run,
@@ -96,7 +95,7 @@ def plot(L_shell, pitch_angle, charge, mass, Kinetic_energy, method,
     if t is None:
         if os.path.exists(filename):
             t, xline, yline, zline, Vx, Vy, Vz = np.loadtxt(
-                filename+'trajectory.txt',unpack = True)
+                filename+'trajectory.txt', unpack=True)
         elif not os.path.exists(filename):
             print('no such value was computed or saved')
 
@@ -104,11 +103,11 @@ def plot(L_shell, pitch_angle, charge, mass, Kinetic_energy, method,
         # need to check if folder exists or not
         if not os.path.exists(filename):
             os.mkdir(filename)
-            
+
     #plot about a thousands points instead of billions
     length = len(t)
     if length > 100000:
-        
+
         N = int(length/100000)
 
         t, xline, yline, zline, Vx, Vy, Vz, = t[::N], xline[::N], yline[::N], \
@@ -118,7 +117,7 @@ def plot(L_shell, pitch_angle, charge, mass, Kinetic_energy, method,
     Ke = .5 * mass * (np.power(Vx, 2) + np.power(Vy, 2) + np.power(Vz, 2))
     Ke0 = Ke[0]
     err_E = abs((Ke0-Ke)/Ke0)
-    
+
     #  units for time
     T = t
     if units == 's':
@@ -139,14 +138,9 @@ def plot(L_shell, pitch_angle, charge, mass, Kinetic_energy, method,
         timelabel = 'Time (seconds)'
         T_plot = t
 
-
     size = [12.8, 9.6]
-    
 
-    
-
-
-    fig,ax = plt.subplots(figsize=size)
+    fig, ax = plt.subplots(figsize=size)
 
     ax.plot(T_plot, err_E, label='error in energy')
     ax.set_title(title)
@@ -161,7 +155,7 @@ def plot(L_shell, pitch_angle, charge, mass, Kinetic_energy, method,
     # x,y,z
 
     # position
-    fig,ax = plt.subplots(figsize=size)
+    fig, ax = plt.subplots(figsize=size)
     ax.plot(T_plot, xline)
     # ax.plot(T_plot, yline)
     # ax.plot(T_plot, zline)
@@ -173,7 +167,7 @@ def plot(L_shell, pitch_angle, charge, mass, Kinetic_energy, method,
     # ax.show()
     plt.close()
 
-    fig,ax = plt.subplots(figsize=size)
+    fig, ax = plt.subplots(figsize=size)
     # ax.plot(T_plot, xline)
     # ax.plot(T_plot, yline)
     ax.plot(T_plot, zline)
@@ -185,7 +179,7 @@ def plot(L_shell, pitch_angle, charge, mass, Kinetic_energy, method,
     # ax.show()
     plt.close()
 
-    fig,ax = plt.subplots(figsize=size)
+    fig, ax = plt.subplots(figsize=size)
     # ax.plot(T_plot, xline)
     ax.plot(T_plot, yline)
     # ax.plot(T_plot, zline)
@@ -200,7 +194,7 @@ def plot(L_shell, pitch_angle, charge, mass, Kinetic_energy, method,
     # L-shell
 
     # xy plot
-    fig,ax = plt.subplots(figsize=size)
+    fig, ax = plt.subplots(figsize=size)
     ax.set_aspect('equal', 'datalim')
     ax.plot(xline, yline)
     ax.set_title(title)

@@ -5,47 +5,41 @@
 import numpy as np
 from datetime import datetime
 
-from joblib import Parallel
-from joblib import delayed
-
 import transformations as trsfrm
 import integrator
-from output import save
-from output import plot
 import constants
 
 startTime = datetime.now()
 
 
-
 def particle_sim(L_shell=2,
                  pitch_angle=60,
-                 mass= constants.M_p,  # in Kg
+                 mass=constants.M_p,  # in Kg
                  charge=-constants.C_e,  # in coulumbs
                  t=1e1,  # time in seconds
                  Kinetic_energy=1e8,
                  # in eV. Defaults to high energy to shorten drift period
-                 
-                 method='boris',# valid choices are 'boris','rk45'
+
+                 method='boris',  # valid choices are 'boris','rk45'
                  # and 'euler__cromer'
                  accuracy=1e3,  # inverse time step in dimensionless form
                  sampling=30,   # points per gyro
                  # note accuracy*sampling cannot be greater than 1
-                 losscone=True,# True to ditch atmoshperic particles
+                 losscone=True,  # True to ditch atmoshperic particles
                  # False to keep them, like for demo()
                  latitude=0,  # all angles in degrees for input
                  longitude=0,
                  phase=0):
-    
+
     #print(L_shell,pitch_angle,mass,charge,t,Kinetic_energy,method,accuracy,
-          #sampling,losscone,latitude,longitude,phase)
-    
+    #sampling,losscone,latitude,longitude,phase)
+
     #sampling modification
     sampling = sampling / (np.pi*2)
-    
+
     sampling = sampling / L_shell**3
     accuracy = accuracy / L_shell**3
-    
+
     # internally all angles are in radians
     latitude = np.radians(latitude)
     longitude = np.radians(longitude)
@@ -61,7 +55,7 @@ def particle_sim(L_shell=2,
                                                L_shell, latitude, longitude,
                                                mass, constants.Re)
     S0 = np.array([x0, y0, z0, vx0, vy0, vz0])
-    v = np.linalg.norm([vx0,vy0,vz0])
+    v = np.linalg.norm([vx0, vy0, vz0])
     beta = v/constants.c
 
     gamma = (1-beta**2)**-.5
@@ -109,16 +103,15 @@ def particle_sim(L_shell=2,
     else:
         print('invalid method')
         return
-    t = T*tc
+
         # print('integrator done at time ', datetime.now() - startTime)
-        
+    # convert time into seconds
+    t = T*tc
     #convert velocites into Re/s
     Vx = Vx / tc
     Vy = Vy / tc
     Vz = Vz / tc
-    
+
     return t, xline, yline, zline, Vx, Vy, Vz
 
 # information on particle perdiods can be found in period_info.pdf
-
-
