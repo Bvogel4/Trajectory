@@ -2,7 +2,7 @@
 
 This program simulates a particle's relativistic motion in dipole magnetic field.
 
-Three different options are available for numerical integration: , [Boris](https://books.google.com/books?id=S2lqgDTm6a4C&q=Borris#v=onepage&q=Boris&f=false),  [Runge-Kutta-Fehlberg](https://ntrs.nasa.gov/api/citations/19700031412/downloads/19700031412.pdf), and 
+Three different options are available for numerical integration: [Boris](https://books.google.com/books?id=S2lqgDTm6a4C&q=Borris#v=onepage&q=Boris&f=false),  [Runge-Kutta-Fehlberg](https://ntrs.nasa.gov/api/citations/19700031412/downloads/19700031412.pdf), and 
 [Euler-Cromer](https://aapt.scitation.org/doi/10.1119/1.12478)
 
 
@@ -18,12 +18,10 @@ Initial condition and properties are measured in a more convenient centered dipo
 
 # Use
 ```
-git clone https://github.com/rweigel/Trajectory
+git clone https://github.com/Bvogel4/Trajectory
 cd Trajectory
 python3 command
 ```
-
-To to modify run, edit top of `ParticleDemo.py`.
 
 # Main Functions
 There are three main functions that can be used:
