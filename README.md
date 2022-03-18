@@ -1,7 +1,3 @@
-
-https://user-images.githubusercontent.com/2690814/159080313-f478efe6-bcf1-409e-85c2-49b82a3b6918.mp4
-
-
 # Overview
 
 This program simulates a charged particle's relativistic motion in dipole magnetic field.
