@@ -10,9 +10,13 @@ def particle_sim(L_shell=2,
                  pitch_angle=60,
                  mass=constants.M_p,     # in kg
                  charge=-constants.C_e,  # in Coulumbs
-                 t=1e1,                  # time in seconds
-                 Kinetic_energy=1e8,
-                 # in eV. Defaults to high energy to shorten drift period
+                 latitude=0,     # all angles in degrees
+                 longitude=0,
+                 phase=0,
+                 Kinetic_energy=1e8, # in eV. Defaults to high energy for 
+                                     # short drift period
+
+                 t=1e1,          # time in seconds
 
                  method='boris', # valid choices are 'boris','rk45'
                                  # and 'euler__cromer'
@@ -23,9 +27,6 @@ def particle_sim(L_shell=2,
 
                  losscone=True,  # True to ditch atmoshperic particles
                                  # False to keep them, like for demo()
-                 latitude=0,     # all angles in degrees
-                 longitude=0,
-                 phase=0,
                  show_timing=False):
 
     if show_timing:
@@ -57,9 +58,10 @@ def particle_sim(L_shell=2,
                                                L_shell, latitude, longitude,
                                                mass, constants.Re)
     S0 = np.array([x0, y0, z0, vx0, vy0, vz0])
+
+    # Relativistic modifications
     v = np.linalg.norm([vx0, vy0, vz0])
     beta = v/constants.c
-
     gamma = (1-beta**2)**-.5
     mass = gamma*mass
 
