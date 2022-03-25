@@ -2,12 +2,11 @@ from setuptools import setup, find_packages
 
 install_requires = [
                         "numpy",
-                        "njit",
+                        "numba",
                         "joblib",
                         "matplotlib",
-                        "pssutil",
-                        "scipy",
-                        "multiprocessing"
+                        "psutil",
+                        "scipy"
                     ]
 
 setup(

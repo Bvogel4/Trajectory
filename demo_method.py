@@ -76,7 +76,7 @@ accuracy = [1e2, 1e4, 1e2, 1e2, 1e4, 1e2]
 sampling = 36
 
 method = ['boris', 'boris', 'rk45', 'boris', 'boris', 'rk45']
-pitch_angle = [90, 90, 90, 10,10,10]
+pitch_angle = [90, 90, 90, 10, 10, 10]
 compute_efficiency = np.zeros(6)*np.nan 
 
 for a in [3,4]:#range(len(pitch_angle)):
