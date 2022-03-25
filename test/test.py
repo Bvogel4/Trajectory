@@ -2,6 +2,7 @@ import numpy as np
 
 import transformations as trsfrm
 from particle_sim import particle_sim
+import constants
 
 
 #compares to a previous run to make sure nothing changes
@@ -12,7 +13,7 @@ def demo_test(mass, charge):
     R = L_shell  # only valid when starting at equator
     pitch = np.radians(pitch_angle)
     # covert energy to joules
-    Ke = Kinetic_energy * 1.602176565e-19
+    Ke = Kinetic_energy * constants.C_e
     phase, latitude, longitude = 0, 0, 0
     x0, y0, z0, vx0, vy0, vz0 = trsfrm.ctd2car(pitch,
                                                phase, Ke,
@@ -43,7 +44,7 @@ c = 3e8
 mass = [M_p, M_p]
 charge = [-C_e, C_e]
 Kinetic_energy = 1e8    # eV
-pitch_angle = 89  # degress
+pitch_angle = 89  # degrees
 L_shell = 4
 method = 'boris'
 accuracy = 1e+3
