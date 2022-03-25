@@ -8,7 +8,7 @@ from transformations import B as B_nd_dipole
 
 #cpu and memory management
 n_threads = multiprocessing.cpu_count()
-mem_t, mem_avail, mem_perc, mem_use, mem_free = psutil.virtual_memory()
+mem_t = psutil.virtual_memory().total
 
 
 @njit

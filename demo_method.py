@@ -49,8 +49,7 @@ def demo_method(method, pitch_angle, accuracy):
     compute_time = timedelta.total_seconds(datetime.now() - startTime)
     print('compute for {} done at time {}s'.format(
         method, compute_time))
-    # save(t, xline, yline, zline, Vx, Vy, Vz, Lshell, pitch, q,
-    #       m, Ke, method)
+
     plot(L_shell, pitch_angle, charge, mass, Kinetic_energy, method, T,
          xline, yline, zline,
          Vx, Vy, Vz)
@@ -79,8 +78,6 @@ method = ['boris', 'boris', 'rk45', 'boris', 'boris', 'rk45']
 pitch_angle = [90, 90, 90, 10,10,10]
 compute_efficiency = np.zeros(6)*np.nan 
 
-for a in [3,4]:#range(len(pitch_angle)):
+for a in range(len(pitch_angle)):
     compute_efficiency[a] = demo_method(method[a], pitch_angle[a], accuracy[a])
 
-# Parallel(n_jobs=-2, prefer='threads')(delayed(demo_method)(methods[a],pitch[a])
-#                                       for a in range(len(pitch)))
