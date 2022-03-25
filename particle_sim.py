@@ -19,7 +19,7 @@ def particle_sim(L_shell=2,
                  t=1e1,          # time in seconds
 
                  method='boris', # valid choices are 'boris','rk45'
-                                 # and 'euler__cromer'
+                                 # and 'euler_cromer'
 
                  accuracy=1e3,   # inverse time step in dimensionless form
                  sampling=30,    # points per gyro
@@ -35,9 +35,8 @@ def particle_sim(L_shell=2,
     #print(L_shell,pitch_angle,mass,charge,t,Kinetic_energy,method,accuracy,
     #sampling,losscone,latitude,longitude,phase)
 
-    #sampling modification
+    # sampling modification
     sampling = sampling / (np.pi*2)
-
     sampling = sampling / L_shell**3
     accuracy = accuracy / L_shell**3
 
@@ -90,7 +89,6 @@ def particle_sim(L_shell=2,
             return
 
         alphac = np.arcsin(term)
-
         if pitch < alphac:
             print('particle will hit the atmosphere, skipping')
             return
