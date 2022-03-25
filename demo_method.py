@@ -1,4 +1,3 @@
-
 import numpy as np
 from datetime import datetime
 from datetime import timedelta
@@ -9,16 +8,21 @@ from particle_sim import particle_sim
 from output import plot
 
 
-#t, xline, yline, zline, Vx, Vy, Vz = None, None, None, None, None, None, None
-
-
 def demo_method(method, pitch_angle, accuracy):
+
+    mass = constants.M_p
+    charge = -constants.C_e
+    Kinetic_energy = 1e8    # eV
+    
+    L_shell = 1
+    sampling = 36
+
     startTime = datetime.now()
     #calculate estimated bouce and drift period
     R = L_shell  # only valid when starting at equator
     pitch = np.radians(pitch_angle)
     # covert energy to joules
-    Ke = Kinetic_energy * 1.602176565e-19
+    Ke = Kinetic_energy * constants.C_e
     phase, latitude, longitude = 0, 0, 0
     x0, y0, z0, vx0, vy0, vz0 = trsfrm.ctd2car(pitch,
                                                phase, Ke,
@@ -31,6 +35,8 @@ def demo_method(method, pitch_angle, accuracy):
     #print(R,v,beta)
     #tb = trsfrm.t_b(R, beta, np.radians(pitch_angle))
     #print('tb',tb)
+    # Compute drift period using equation from Walt, Intro to Geomagnetically
+    # trapped radiation, p158.
     if mass == constants.M_p:
         Cd = 8.481
         td = trsfrm.t_d(R, beta, np.radians(pitch_angle), Cd)
@@ -66,20 +72,14 @@ def demo_method(method, pitch_angle, accuracy):
     return compute_efficiency
 
 
-mass = constants.M_p
-charge = -constants.C_e
-Kinetic_energy = 1e8    # eV
-
-L_shell = 1
 
 accuracy = [1e2, 1e4, 1e2, 1e2, 1e4, 1e2]
-sampling = 36
 
 method = ['boris', 'boris', 'rk45', 'boris', 'boris', 'rk45']
 pitch_angle = [90, 90, 90, 10, 10, 10]
 compute_efficiency = np.zeros(6)*np.nan 
 
-for a in [3,4]:#range(len(pitch_angle)):
+for a in [0,1]:#range(len(pitch_angle)):
     compute_efficiency[a] = demo_method(method[a], pitch_angle[a], accuracy[a])
 
 # Parallel(n_jobs=-2, prefer='threads')(delayed(demo_method)(methods[a],pitch[a])

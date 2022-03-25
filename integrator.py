@@ -1,4 +1,3 @@
-
 import numpy as np
 from numba import njit
 from scipy.integrate import solve_ivp
@@ -44,7 +43,7 @@ def rk45_nd(dT, tfinal, S0, qsign):
     T = dT * np.linspace(0, n, n)  # need to find appropiate dT and T ranges
 
     #need to cap arraysize
-    arraysize = len(T)
+    #arraysize = len(T)
     #if 7*arraysize*8 >1e9
     T_span = (T[0], T[-1])  # Provide solution over this time range
     if qsign == 1:

@@ -1,15 +1,9 @@
-# This file performs all the transformations from the transformatons module
-# computes the arrays using the Integrators module
-# save to save plaintext and .vtk for paraview
-# plot gernertes saved images to look at simualation parameters
 import numpy as np
 from datetime import datetime
 
 import transformations as trsfrm
 import integrator
 import constants
-
-startTime = datetime.now()
 
 
 def particle_sim(L_shell=2,
@@ -31,7 +25,11 @@ def particle_sim(L_shell=2,
                                  # False to keep them, like for demo()
                  latitude=0,     # all angles in degrees
                  longitude=0,
-                 phase=0):
+                 phase=0,
+                 show_timing=False):
+
+    if show_timing:
+        startTime = datetime.now()
 
     #print(L_shell,pitch_angle,mass,charge,t,Kinetic_energy,method,accuracy,
     #sampling,losscone,latitude,longitude,phase)
@@ -47,10 +45,12 @@ def particle_sim(L_shell=2,
     longitude = np.radians(longitude)
     phase = np.radians(phase)
     pitch = np.radians(pitch_angle)
+
     # covert energy to joules
-    Kinetic_energy = Kinetic_energy * 1.602176565e-19
+    Kinetic_energy = Kinetic_energy * constants.C_e
 
     dT = 1/accuracy
+
     # convert initial conditons to cartesian
     x0, y0, z0, vx0, vy0, vz0 = trsfrm.ctd2car(pitch,
                                                phase, Kinetic_energy,
@@ -65,7 +65,7 @@ def particle_sim(L_shell=2,
 
     # convert into new dimensionless units
     # need constants first
-    # re is at the top
+    # Re is at the top
     tc = abs((mass/(charge*constants.Bc)))
     # in nd form can't have negative tc
     # qsign passes the sign of the charge
@@ -75,8 +75,9 @@ def particle_sim(L_shell=2,
     # convert to nd positions and velocities
     S0 = S0/constants.Re
     S0[3:6] = S0[3:6] * tc
-    # convert time into nd
-    tp = t/(tc)
+
+    # compute dimensionless time
+    tp = t/tc
 
     # check loss cone angle and exit if angle is in loss cone
     if losscone is True:
@@ -94,26 +95,24 @@ def particle_sim(L_shell=2,
 
     # Integrate
     if method == 'rk45':
-        xline, yline, zline, Vx, Vy, Vz, T = integrator.\
-            rk45_nd(dT, tp, S0, qsign)
+        x, y, z, vx, vy, vz, T = integrator.rk45_nd(dT, tp, S0, qsign)
     elif method == 'euler_cromer':
-        xline, yline, zline, Vx, Vy, Vz, T = integrator.\
-            euler_cromer(dT, tp, S0, qsign)
+        x, y, z, vx, vy, vz, T = integrator.euler_cromer(dT, tp, S0, qsign)
     elif method == 'boris':
-        xline, yline, zline, Vx, Vy, Vz, T = integrator.\
-            boris(dT, sampling, S0, tp, qsign)
+        x, y, z, vx, vy, vz, T = integrator.boris(dT, sampling, S0, tp, qsign)
     else:
         print('invalid method')
         return
 
-    # print('integrator done at time ', datetime.now() - startTime)
+    if show_timing:
+        print('integration took {}'.format(datetime.now() - startTime))
+
     # convert time into seconds
     t = T*tc
+
     #convert velocites into Re/s
-    Vx = Vx / tc
-    Vy = Vy / tc
-    Vz = Vz / tc
+    vx = vx / tc
+    vy = vy / tc
+    vz = vz / tc
 
-    return t, xline, yline, zline, Vx, Vy, Vz
-
-# information on particle periods can be found in period_info.pdf
+    return t, x, y, z, vx, vy, vz

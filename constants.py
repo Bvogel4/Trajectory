@@ -22,7 +22,7 @@ M_e = 9.10938356e-31
 # Charge on electron in Coulombs
 C_e = -1.60218e-19
 
-# Critical B value (TODO: Explain)
+# B scale factor for dimensionless variable
 Bc = u0*M/(4*np.pi*Re**3)
 
 # Dimensionless magnetic field at the top of the atmosphere (altitude = 100 km)
