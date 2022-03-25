@@ -72,9 +72,3 @@ sampling = 36
 for a in range(len(mass)):
     demo(mass[a], charge[a])
 
-#for method in methods:
-
-    #lets do 1 drift and a few bounce for proton
-
-# Parallel(n_jobs=1, prefer='threads')(delayed(demo)(L_shell[a],t[a])
-#                                       for a  in range(len( L_shell)))

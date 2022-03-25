@@ -142,10 +142,9 @@ def ctd2car(pitch, phase, Kinetic_energy, Lshell, latitude, longitude, m, Re):
     Bx, By, Bz = Bnormal(Bx, By, Bz)
     c = 3e8
     sqrt = np.sqrt(2*c**2*m + Kinetic_energy)
-    
-    V_mag = np.sqrt(Kinetic_energy) * c * sqrt / ( 
-        c**2*m + Kinetic_energy)
 
+    V_mag = np.sqrt(Kinetic_energy) * c * sqrt / (
+        c**2*m + Kinetic_energy)
 
     V_par = np.cos(pitch) * V_mag
     V_perp = np.sin(pitch) * V_mag
@@ -155,8 +154,8 @@ def ctd2car(pitch, phase, Kinetic_energy, Lshell, latitude, longitude, m, Re):
     Vparz = Bz * V_par
     B0 = np.array([Bx, By, Bz])
     r = (x, y, z)
-    rPar = (np.dot(r, B0) \
-            /(np.dot(B0, B0))) * B0
+    rPar = (np.dot(r, B0)
+            / (np.dot(B0, B0))) * B0
     rPerp = r - rPar
     rperp_mag = np.sqrt(np.power(rPerp[0], 2) + np.power(rPerp[1], 2)
                         + np.power(rPerp[2], 2))
@@ -183,17 +182,20 @@ def ctd2car(pitch, phase, Kinetic_energy, Lshell, latitude, longitude, m, Re):
 
     return x, y, z, Vx, Vy, Vz
 
-def t_b(R,beta,a_eq):  # good to .5%
+#equatorial bounce period
+#low pitch angles will differ
+def t_b(R, beta, a_eq):  # good to .5%
     #R0 is the distance from origin to the equatorial crossing
     #R = R0/Re
     #beta = v/c
-    t_b = .117*R/beta * (1-.4635* (np.sin(a_eq))**(3/4))
+    t_b = .117*R/beta * (1-.4635 * (np.sin(a_eq))**(3/4))
     return t_b
 
-def t_d(R,beta,a_eq,Cd):
+#equatorial drift period
+#low pitch angles will differ
+def t_d(R, beta, a_eq, Cd):
     gamma = (1-beta**2)**(-.5)
     #cd for e- = 1.557e4s
     # for proton = 8.481s
-    t_d = Cd/R / (gamma*beta**2) * (1-.333* np.sin(a_eq)**(.62))
+    t_d = Cd/R / (gamma*beta**2) * (1-.333 * np.sin(a_eq)**(.62))
     return t_d
-
