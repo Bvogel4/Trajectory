@@ -1,4 +1,4 @@
-# This file perfroms all the transformations from the transformatons module
+# This file performs all the transformations from the transformatons module
 # computes the arrays using the Integrators module
 # save to save plaintext and .vtk for paraview
 # plot gernertes saved images to look at simualation parameters
@@ -14,20 +14,22 @@ startTime = datetime.now()
 
 def particle_sim(L_shell=2,
                  pitch_angle=60,
-                 mass=constants.M_p,  # in Kg
-                 charge=-constants.C_e,  # in coulumbs
-                 t=1e1,  # time in seconds
+                 mass=constants.M_p,     # in kg
+                 charge=-constants.C_e,  # in Coulumbs
+                 t=1e1,                  # time in seconds
                  Kinetic_energy=1e8,
                  # in eV. Defaults to high energy to shorten drift period
 
-                 method='boris',  # valid choices are 'boris','rk45'
-                 # and 'euler__cromer'
-                 accuracy=1e3,  # inverse time step in dimensionless form
-                 sampling=30,   # points per gyro
-                 # note accuracy*sampling cannot be greater than 1
+                 method='boris', # valid choices are 'boris','rk45'
+                                 # and 'euler__cromer'
+
+                 accuracy=1e3,   # inverse time step in dimensionless form
+                 sampling=30,    # points per gyro
+                                 # note accuracy*sampling cannot be greater than 1
+
                  losscone=True,  # True to ditch atmoshperic particles
-                 # False to keep them, like for demo()
-                 latitude=0,  # all angles in degrees for input
+                                 # False to keep them, like for demo()
+                 latitude=0,     # all angles in degrees
                  longitude=0,
                  phase=0):
 
@@ -76,7 +78,7 @@ def particle_sim(L_shell=2,
     # convert time into nd
     tp = t/(tc)
 
-    # check loss cone angle and exit if angle is too high
+    # check loss cone angle and exit if angle is in loss cone
     if losscone is True:
         B = np.linalg.norm(trsfrm.B(S0[0], S0[1], S0[2]))
         term = np.sqrt(B/constants.Ba)
@@ -90,7 +92,7 @@ def particle_sim(L_shell=2,
             print('particle will hit the atmosphere, skipping')
             return
 
-    # choose integrator based of input
+    # Integrate
     if method == 'rk45':
         xline, yline, zline, Vx, Vy, Vz, T = integrator.\
             rk45_nd(dT, tp, S0, qsign)
@@ -104,7 +106,7 @@ def particle_sim(L_shell=2,
         print('invalid method')
         return
 
-        # print('integrator done at time ', datetime.now() - startTime)
+    # print('integrator done at time ', datetime.now() - startTime)
     # convert time into seconds
     t = T*tc
     #convert velocites into Re/s
@@ -114,4 +116,4 @@ def particle_sim(L_shell=2,
 
     return t, xline, yline, zline, Vx, Vy, Vz
 
-# information on particle perdiods can be found in period_info.pdf
+# information on particle periods can be found in period_info.pdf

@@ -1,18 +1,13 @@
-
 import numpy as np
-from joblib import Parallel
-from joblib import delayed
 from datetime import datetime
-
 
 import transformations as trsfrm
 from particle_sim import particle_sim
-from output import save, plot
+from output import plot
 
 
 startTime = datetime.now()
 
-#t, xline, yline, zline, Vx, Vy, Vz = None, None, None, None, None, None, None
 
 #do a drift and bounce
 def demo(mass,charge):
@@ -41,8 +36,7 @@ def demo(mass,charge):
     td = trsfrm.t_d(R, beta, np.radians(pitch_angle),Cd)
     
     print('bounce period is {:.2e} \ndrift period is {:.2e}'.format(tb,td))
-    
-    
+
     #print("Computing trajectory using " + method)
     T, xline, yline, zline, Vx, Vy, Vz = particle_sim(
         L_shell, pitch_angle, mass,charge, 1.1*td, Kinetic_energy, method, accuracy,
@@ -60,7 +54,8 @@ def demo(mass,charge):
     
     return
 
-Re = 6.371e6
+# Use constants.py
+Re  = 6.371e6
 M_p = 1.6726219e-27  # kg
 M_e = 9.10938356e-31  # kg
 C_e = -1.60218e-19   # C
