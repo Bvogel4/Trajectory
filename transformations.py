@@ -2,6 +2,7 @@
 # contains useful functions such as B field, and coordinate conversions
 import numpy as np
 from numba import njit
+import constants
 
 
 @njit
@@ -131,20 +132,28 @@ def car2ctd(x0, y0, z0, Vx0, Vy0, Vz0, m, Re):
 
 
 # converts back to cartesian
-def ctd2car(pitch, phase, Kinetic_energy, Lshell, latitude, longitude, m, Re):
+def ctd2car(parameters):
+    pitch, phase, Kinetic_energy, Lshell, latitude, longitude, m = \
+        np.radians(parameters['pitch_angle']),np.radians(parameters['phase']),\
+        parameters['Kinetic_energy']*abs(constants.C_e),parameters['L_shell'],\
+        np.radians(parameters['latitude']),np.radians(parameters['longitude']),\
+        parameters['mass']
+        
+            
     #print(Lshell,latitude,Re)
-    r = Lshell * np.power(np.cos(latitude), 2) * Re
+    r = Lshell * np.power(np.cos(latitude), 2) * constants.Re
     phi = np.pi/2 - latitude
     x = r * np.sin(phi) * np.cos(longitude)
     y = r * np.sin(phi) * np.sin(longitude)
     z = r * np.cos(phi)
     Bx, By, Bz = B(x, y, z)
     Bx, By, Bz = Bnormal(Bx, By, Bz)
-    c = 3e8
-    sqrt = np.sqrt(2*c**2*m + Kinetic_energy)
+    #c = 3e8
+    sqrt = np.sqrt(2*constants.c**2*m + Kinetic_energy)
 
-    V_mag = np.sqrt(Kinetic_energy) * c * sqrt / (
-        c**2*m + Kinetic_energy)
+    #print(Kinetic_energy,constants.c,m)
+    V_mag = np.sqrt(Kinetic_energy) * constants.c * sqrt / (
+        constants.c**2*m + Kinetic_energy)
 
     V_par = np.cos(pitch) * V_mag
     V_perp = np.sin(pitch) * V_mag
@@ -184,18 +193,40 @@ def ctd2car(pitch, phase, Kinetic_energy, Lshell, latitude, longitude, m, Re):
 
 #equatorial bounce period
 #low pitch angles will differ
-def t_b(R, beta, a_eq):  # good to .5%
+def t_b(parameters):  # good to .5%
     #R0 is the distance from origin to the equatorial crossing
     #R = R0/Re
     #beta = v/c
+    
+    R = parameters['L_shell'] # only valid when starting at equator
+    x0, y0, z0, vx0, vy0, vz0 = ctd2car(parameters)
+    v = np.linalg.norm([vx0, vy0, vz0])
+    beta = v/constants.c
+    a_eq = np.radians(parameters['pitch_angle'])
     t_b = .117*R/beta * (1-.4635 * (np.sin(a_eq))**(3/4))
     return t_b
 
 #equatorial drift period
 #low pitch angles will differ
-def t_d(R, beta, a_eq, Cd):
+def t_d(parameters):
+    
+    R = parameters['L_shell'] # only valid when starting at equator
+    x0, y0, z0, vx0, vy0, vz0 = ctd2car(parameters)
+    v = np.linalg.norm([vx0, vy0, vz0])
+    beta = v/constants.c
+    
+    
+    if parameters['species'] == 'proton':
+        Cd = 8.481
+    elif parameters['species'] == 'electron':
+        Cd = 1.557e4
+    else:
+        print('drift calculation only for electrons and protons')
+        return
+    
     gamma = (1-beta**2)**(-.5)
     #cd for e- = 1.557e4s
     # for proton = 8.481s
+    a_eq = np.radians(parameters['pitch_angle'])
     t_d = Cd/R / (gamma*beta**2) * (1-.333 * np.sin(a_eq)**(.62))
     return t_d

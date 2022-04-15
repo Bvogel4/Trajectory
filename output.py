@@ -2,21 +2,26 @@ import os
 import numpy as np
 from matplotlib import pyplot as plt
 
+import constants
 from vtk_export import vtk_export
 import transformations as trsfrm
 
 
-def save(t, xline, yline, zline, Vx, Vy, Vz, L_shell, pitch_angle,
-         charge, mass, Kinetic_energy, method):
+def save(parameters,t, x, y, z, vx, vy, vz):
 
     if not os.path.exists('output'):
         os.mkdir('output')
 
-    qm_rat = charge/mass
-    kename = Kinetic_energy*1e-3
+    species_name = parameters['species']
+    
+    if parameters['species']  != ('electron' or 'proton'):
+        qm_rat = parameters['charge']/parameters['mass']
+        species_name = 'qm_{:,}'.format(qm_rat)
+    kename = parameters['Kinetic_energy']*1e-3
 
-    out_dir = 'output/qm_{:,}_Ke_{}MeV_pitch_{}d_L_{}Re_{}/'\
-        .format(qm_rat, kename, pitch_angle, L_shell, method)
+    out_dir = 'output/{}_Ke_{}MeV_pitch_{}d_L_{}Re_{}/'\
+        .format(species_name, kename, parameters['pitch_angle'], 
+                parameters['L_shell'], parameters['method'])
 
     if not os.path.exists(out_dir):
         os.mkdir(out_dir)
@@ -24,23 +29,18 @@ def save(t, xline, yline, zline, Vx, Vy, Vz, L_shell, pitch_angle,
     # CSV
     out_filename = out_dir + 'trajectory.csv'
 
-    arr_out = np.column_stack((t, xline, yline, zline, Vx, Vy, Vz))
+    arr_out = np.column_stack((t, x, y, z, vx, vy, vz))
 
     # TODO: Output file should have 7 columns
     # Change velocities to R_E/s
 
-    Re = 6.371e6
-    # Re = 1 # radius of earth in m
-    M = 8.22e22
-    # magnetic moment M = 8.22x10^22 \A m^2 for earth
-    u0 = 1.25663706212e-6
-    # critical B value
-    Bc = u0*M/(4*np.pi*Re**3)
-    tc = abs((mass/(charge*Bc)))
 
-    Vx = Vx/tc
-    Vy = Vy/tc
-    Vz = Vz/tc
+
+    tc = abs((parameters['mass']/(parameters['charge']*constants.Bc)))
+
+    vx = vx/tc
+    vy = vy/tc
+    vz = vz/tc
 
     #print("Saving " + out_filename)
     np.savetxt(out_filename, arr_out,
@@ -50,7 +50,7 @@ def save(t, xline, yline, zline, Vx, Vy, Vz, L_shell, pitch_angle,
     # VTK
     out_filename = out_dir + 'xyz.vtk'
 
-    points = np.column_stack([xline, yline, zline])
+    points = np.column_stack([x, y, z])
 
     ftype = 'ASCII'
     connectivity = {'LINES': np.array([points.shape[0]])}
@@ -67,9 +67,7 @@ def save(t, xline, yline, zline, Vx, Vy, Vz, L_shell, pitch_angle,
     return
 
 
-def plot(L_shell, pitch_angle, charge, mass, Kinetic_energy, method,
-         t=None, xline=None, yline=None, zline=None, Vx=None,
-         Vy=None, Vz=None, units='s'):
+def plot(parameters,t=None, x=None, y=None, z=None, vx=None,vy=None, vz=None, units='s'):
     # valid choices for units are 's' 'Tc' 'min' 'days
     # x = None passes nothing if compute was not run,
     # and pull from save if exists
@@ -78,43 +76,55 @@ def plot(L_shell, pitch_angle, charge, mass, Kinetic_energy, method,
     if not os.path.exists('output'):
         os.mkdir('output')
 
-    qm_rat = charge/mass
-    kename = Kinetic_energy*1e-3
+    species_name = parameters['species']
+    
+    
+    
+    
+    
+    
+    if not (parameters['species']   in ('electron' , 'proton')):
+        qm_rat = parameters['charge']/parameters['mass']
+        species_name = 'qm_{:,}'.format(qm_rat)
+        
+        
+        
+    kename = parameters['Kinetic_energy']*1e-3
 
-    filename = 'output/qm_{:,}_Ke_{}MeV_pitch_{}d_L_{}Re_{}/'\
-        .format(qm_rat, kename, pitch_angle, L_shell, method)
-
-    title = '''pitch = {}\N{DEGREE SIGN} q/m = {:,}, L = {},
+    out_dir = 'output/{}_Ke_{}MeV_pitch_{}d_L_{}Re_{}/'\
+        .format(species_name, kename, parameters['pitch_angle'], 
+                parameters['L_shell'], parameters['method'])
+        
+        
+    title = '''pitch = {}\N{DEGREE SIGN} q/m = {}, L = {},
         Ke = {:.1e}eV, Method = {}''' \
-        .format(pitch_angle, qm_rat, L_shell, Kinetic_energy, method)
+        .format(parameters['pitch_angle'], parameters['species'],
+                parameters['L_shell'], parameters['Kinetic_energy'],
+                parameters['method'])
 
-    # read in values if needed
-    # check if file exists already?
-    # how to check if other arrays exist?
-    # if t == none then no array exists and need to read
     if t is None:
-        if os.path.exists(filename):
-            t, xline, yline, zline, Vx, Vy, Vz = np.loadtxt(
-                filename+'trajectory.txt', unpack=True)
-        elif not os.path.exists(filename):
+        if os.path.exists(out_dir):
+            t, x, y, z, vx, vy, vz = np.loadtxt(
+                out_dir+'trajectory.txt', unpack=True)
+        elif not os.path.exists(out_dir):
             print('no such value was computed or saved')
 
     elif t is not None:
         # need to check if folder exists or not
-        if not os.path.exists(filename):
-            os.mkdir(filename)
+        if not os.path.exists(out_dir):
+            os.mkdir(out_dir)
 
-    #plot about a thousands points instead of billions
+    #plot about 10 thousand points instead of billions
     length = len(t)
-    if length > 100000:
+    if length > 10000:
 
         N = int(length/100000)
 
-        t, xline, yline, zline, Vx, Vy, Vz, = t[::N], xline[::N], yline[::N], \
-            zline[::N], Vx[::N], Vy[::N], Vz[::N]
+        t, x, y, z, vx, vy, vz, = t[::N], x[::N], y[::N], \
+            z[::N], vx[::N], vy[::N], vz[::N]
 
     #error in energy
-    Ke = .5 * mass * (np.power(Vx, 2) + np.power(Vy, 2) + np.power(Vz, 2))
+    Ke = .5 * parameters['mass'] * vx**2+vy**2+vz**2
     Ke0 = Ke[0]
     err_E = abs((Ke0-Ke)/Ke0)
 
@@ -147,7 +157,7 @@ def plot(L_shell, pitch_angle, charge, mass, Kinetic_energy, method,
     ax.legend()
     ax.set_xlabel(timelabel)
     ax.set_ylabel('Relative error in energy')
-    fig.savefig(filename + 'energy.svg', format='svg')
+    fig.savefig(out_dir + 'energy.svg', format='svg')
     plt.close()
     # ax.show()
 
@@ -156,38 +166,38 @@ def plot(L_shell, pitch_angle, charge, mass, Kinetic_energy, method,
 
     # position
     fig, ax = plt.subplots(figsize=size)
-    ax.plot(T_plot, xline)
-    # ax.plot(T_plot, yline)
-    # ax.plot(T_plot, zline)
+    ax.plot(T_plot, x)
+    # ax.plot(T_plot, y)
+    # ax.plot(T_plot, z)
     ax.legend('x', loc='upper right')
     ax.set_title(title)
     ax.set_xlabel(timelabel)
     ax.set_ylabel('Distance (Re)')
-    fig.savefig(filename + 'x.svg', format='svg')
+    fig.savefig(out_dir + 'x.svg', format='svg')
     # ax.show()
     plt.close()
 
     fig, ax = plt.subplots(figsize=size)
-    # ax.plot(T_plot, xline)
-    # ax.plot(T_plot, yline)
-    ax.plot(T_plot, zline)
+    # ax.plot(T_plot, x)
+    # ax.plot(T_plot, y)
+    ax.plot(T_plot, z)
     ax.legend('z', loc='upper right')
     ax.set_title(title)
     ax.set_xlabel(timelabel)
     ax.set_ylabel('Distance (Re)')
-    fig.savefig(filename + 'z.svg', format='svg')
+    fig.savefig(out_dir + 'z.svg', format='svg')
     # ax.show()
     plt.close()
 
     fig, ax = plt.subplots(figsize=size)
-    # ax.plot(T_plot, xline)
-    ax.plot(T_plot, yline)
-    # ax.plot(T_plot, zline)
+    # ax.plot(T_plot, x)
+    ax.plot(T_plot, y)
+    # ax.plot(T_plot, z)
     ax.legend(['y'], loc='upper right')
     ax.set_title(title)
     ax.set_xlabel(timelabel)
     ax.set_ylabel('Distance (Re)')
-    fig.savefig(filename + 'y.svg', format='svg')
+    fig.savefig(out_dir + 'y.svg', format='svg')
     # ax.show()
     plt.close()
 
@@ -196,10 +206,10 @@ def plot(L_shell, pitch_angle, charge, mass, Kinetic_energy, method,
     # xy plot
     fig, ax = plt.subplots(figsize=size)
     ax.set_aspect('equal', 'datalim')
-    ax.plot(xline, yline)
+    ax.plot(x, y)
     ax.set_title(title)
     ax.set_xlabel('X (Re)')
     ax.set_ylabel('Y (Re)')
-    fig.savefig(filename + 'xy.svg', format='svg')
+    fig.savefig(out_dir + 'xy.svg', format='svg')
     # ax.show()
     plt.close()

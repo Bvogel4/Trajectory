@@ -1,61 +1,50 @@
 import numpy as np
 from datetime import datetime
+from datetime import timedelta
 
 import transformations as trsfrm
 import integrator
 import constants
 
 
-def particle_sim(L_shell=2,
-                 pitch_angle=60,
-                 mass=constants.M_p,     # in kg
-                 charge=-constants.C_e,  # in Coulumbs
-                 latitude=0,     # all angles in degrees
-                 longitude=0,
-                 phase=0,
-                 Kinetic_energy=1e8, # in eV. Defaults to high energy for 
-                                     # short drift period
 
-                 t=1e1,          # time in seconds
-
-                 method='boris', # valid choices are 'boris','rk45'
-                                 # and 'euler_cromer'
-
-                 accuracy=1e3,   # inverse time step in dimensionless form
-                 sampling=30,    # points per gyro
-                                 # note accuracy*sampling cannot be greater than 1
-
-                 losscone=True,  # True to ditch atmoshperic particles
-                                 # False to keep them, like for demo()
-                 show_timing=False):
-
-    if show_timing:
+def particle_sim(parameters = constants.parameters):
+    
+    
+    if parameters['show_timing']:
         startTime = datetime.now()
 
     #print(L_shell,pitch_angle,mass,charge,t,Kinetic_energy,method,accuracy,
     #sampling,losscone,latitude,longitude,phase)
-
+    # method,accuracy,sampling,losscone,show_timing = parameters['method'],\
+    #     parameters['accuracy'],parameters['sampling'],\
+    #     parameters['loss_cone'],parameters['show_timing']
+    
+    L_shell,mass,charge,t,species = parameters['L_shell'],parameters['mass'],\
+        parameters['charge'],parameters['time'],parameters['species']
+    
     # sampling modification
-    sampling = sampling / (np.pi*2)
-    sampling = sampling / L_shell**3
-    accuracy = accuracy / L_shell**3
+    sampling,accuracy = parameters['sampling'],parameters['accuracy']
+    sampling /=  (np.pi*2) * L_shell**3
+    accuracy/=  L_shell**3
 
     # internally all angles are in radians
-    latitude = np.radians(latitude)
-    longitude = np.radians(longitude)
-    phase = np.radians(phase)
-    pitch = np.radians(pitch_angle)
+    # latitude = np.radians(latitude)
+    # longitude = np.radians(longitude)
+    # phase = np.radians(phase)
+    # pitch = np.radians(pitch_angle)
 
     # covert energy to joules
-    Kinetic_energy = Kinetic_energy * constants.C_e
+    #Kinetic_energy = Kinetic_energy * constants.C_e
 
-    dT = 1/accuracy
+    dT = 1/parameters['accuracy']
 
     # convert initial conditons to cartesian
-    x0, y0, z0, vx0, vy0, vz0 = trsfrm.ctd2car(pitch,
-                                               phase, Kinetic_energy,
-                                               L_shell, latitude, longitude,
-                                               mass, constants.Re)
+    # x0, y0, z0, vx0, vy0, vz0 = trsfrm.ctd2car(pitch,
+    #                                            phase, Kinetic_energy,
+    #                                            L_shell, latitude, longitude,
+    #                                            mass, constants.Re)
+    x0, y0, z0, vx0, vy0, vz0 = trsfrm.ctd2car(parameters)
     S0 = np.array([x0, y0, z0, vx0, vy0, vz0])
 
     # Relativistic modifications
@@ -79,32 +68,35 @@ def particle_sim(L_shell=2,
 
     # compute dimensionless time
     tp = t/tc
-
+    
     # check loss cone angle and exit if angle is in loss cone
-    if losscone is True:
+    Ba = np.linalg.norm(trsfrm.B(0, 0, constants.za))
+    if parameters['loss_cone'] is True:
         B = np.linalg.norm(trsfrm.B(S0[0], S0[1], S0[2]))
-        term = np.sqrt(B/constants.Ba)
+        term = np.sqrt(B/Ba)
         if abs(term) > 1 or L_shell < 1:
             print('particle will hit the atmosphere, skipping')
             return
 
         alphac = np.arcsin(term)
-        if pitch < alphac:
+        if parameters['pitch'] < alphac:
             print('particle will hit the atmosphere, skipping')
             return
 
     # Integrate
-    if method == 'rk45':
+    if parameters['method'] == 'rk45':
         x, y, z, vx, vy, vz, T = integrator.rk45_nd(dT, tp, S0, qsign)
-    elif method == 'euler_cromer':
+    elif parameters['method'] == 'euler_cromer':
         x, y, z, vx, vy, vz, T = integrator.euler_cromer(dT, tp, S0, qsign)
-    elif method == 'boris':
-        x, y, z, vx, vy, vz, T = integrator.boris(dT, sampling, S0, tp, qsign)
+    elif parameters['method'] == 'boris':
+       # print(parameters)
+        x, y, z, vx, vy, vz, T = integrator.boris(dT, parameters['sampling'],
+                                                  S0, tp, qsign)
     else:
         print('invalid method')
         return
 
-    if show_timing:
+    if parameters['show_timing']:
         print('integration took {}'.format(datetime.now() - startTime))
 
     # convert time into seconds
@@ -116,3 +108,35 @@ def particle_sim(L_shell=2,
     vz = vz / tc
 
     return t, x, y, z, vx, vy, vz
+
+import output
+
+def trajectory(parameters,type = 'test',plot = False,save = False):
+    
+    startTime = datetime.now()    
+    if type in ['test','method','trajectory']:
+        #calculate estimated drift period       
+        parameters.update({'time':1.1*trsfrm.t_d(parameters)})
+    elif type == 'bounce':
+        #calculate estimated bounce period 
+        parameters.update({'time':20*trsfrm.t_b(parameters)})
+    
+    T, x, y, z, vx, vy, vz = particle_sim(parameters)
+    
+    if save:
+        output.save(parameters,T, x, y, z, vx, vy, vz)
+    if output:
+        output.plot(parameters,T, x, y, z, vx, vy, vz)
+        
+    if type == 'test':
+        return y[-1], T[-1]
+    
+    elif type == 'method':
+        compute_time = timedelta.total_seconds(datetime.now() - startTime)
+        Ke0 = np.sqrt( vx[0]**2 + vy[0]**2 + vz[0]**2)
+        Kef = np.sqrt( vx[-1]**2 + vy[-1]**2 + vz[-1]**2)
+        err_E = abs((Kef-Ke0)/Ke0)
+        compute_efficiency = err_E/compute_time
+        print(compute_efficiency)
+
+        return compute_efficiency

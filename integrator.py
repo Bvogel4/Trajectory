@@ -17,10 +17,10 @@ def dUdt_nd(T, U):
     Bx, By, Bz = B_nd_dipole(U[0], U[1], U[2])
     # magnetic field function (currently in cartesian)
     B = Bx, By, Bz
-    # Vx, Vy, Vz = V
+    # vx, vy, vz = V
     DvDT = np.cross(V, B)  # note cross only works in cartesian
 
-    return U[3], U[4], U[5], DvDT[0], DvDT[1], DvDT[2]  # dVxdt, dVydt, dVzdt
+    return U[3], U[4], U[5], DvDT[0], DvDT[1], DvDT[2]  # dvxdt, dvydt, dvzdt
 
 
 @njit
@@ -31,10 +31,10 @@ def dUdt_nd2(T, U):
     Bx, By, Bz = B_nd_dipole(U[0], U[1], U[2])
     B = (-Bx, -By, -Bz)
 
-    # Vx,Vy,Vz = V
+    # vx,vy,vz = V
     DvDT = np.cross(V, B)
 
-    return U[3], U[4], U[5], DvDT[0], DvDT[1], DvDT[2]  # dVxdt, dVydt, dVzdt
+    return U[3], U[4], U[5], DvDT[0], DvDT[1], DvDT[2]  # dvxdt, dvydt, dvzdt
 
 
 def rk45_nd(dT, tfinal, S0, qsign):
@@ -53,14 +53,14 @@ def rk45_nd(dT, tfinal, S0, qsign):
         soln = solve_ivp(dUdt_nd2, T_span, S0, method='RK45', t_eval=T,
                          atol=1e-13, rtol=1e-13)
 
-    xline = soln.y[0]
-    yline = soln.y[1]
-    zline = soln.y[2]
-    Vx = soln.y[3]
-    Vy = soln.y[4]
-    Vz = soln.y[5]
+    x = soln.y[0]
+    y = soln.y[1]
+    z = soln.y[2]
+    vx = soln.y[3]
+    vy = soln.y[4]
+    vz = soln.y[5]
 
-    return xline, yline, zline, Vx, Vy, Vz, T
+    return x, y, z, vx, vy, vz, T
 
 
 @njit
@@ -94,10 +94,10 @@ becasue of no adaptive step
 
 def boris(dT, sampling, P, duration, qsign):
 
-    (x0, y0, z0, Vx0, Vy0, Vz0) = P
+    (x0, y0, z0, vx0, vy0, vz0) = P
 
     p = np.array([x0, y0, z0])
-    v = np.array([Vx0, Vy0, Vz0])
+    v = np.array([vx0, vy0, vz0])
 
     @njit(nogil=True)
     def loop(p, v, dt):
@@ -195,21 +195,21 @@ def boris(dT, sampling, P, duration, qsign):
     S, V, T = loop(p, v, dT)
     #
     # seperate coords
-    xline = (S[:, 0])
-    yline = (S[:, 1])
-    zline = (S[:, 2])
-    Vx = (V[:, 0])
-    Vy = (V[:, 1])
-    Vz = (V[:, 2])
+    x = (S[:, 0])
+    y = (S[:, 1])
+    z = (S[:, 2])
+    vx = (V[:, 0])
+    vy = (V[:, 1])
+    vz = (V[:, 2])
 
-    nans = np.isnan(xline)
+    nans = np.isnan(x)
 
-    xline = xline[~nans]
-    yline = yline[~nans]
-    zline = zline[~nans]
-    Vx = Vx[~nans]
-    Vy = Vy[~nans]
-    Vz = Vz[~nans]
+    x = x[~nans]
+    y = y[~nans]
+    z = z[~nans]
+    vx = vx[~nans]
+    vy = vy[~nans]
+    vz = vz[~nans]
     T = T[~nans]
 
-    return xline, yline, zline, Vx, Vy, Vz, T
+    return x, y, z, vx, vy, vz, T
