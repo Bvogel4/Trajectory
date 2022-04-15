@@ -26,19 +26,21 @@ def trajectory_generator(par=True):
                         parameters.update({'L_shell': L_shell[d], 'pitch_angle':
                             pitch_angle[c], 'Kinetic_energy': Kinetic_energy[b],
                             'mass': mass[a], 'charge': charge[a],
-                            'species': species[a]})
+                            'species': species[a]},plot = True,save = True)
 
                         trajectory(parameters)
 
     # use joblib to speed up compute time
+    # saves both plots and trajectories, will take up a lot of space
     if par is True:
-        Parallel(n_jobs=-2, prefer='threads')(
+        Parallel(n_jobs=-2, prefer='threads')( #can't update dic like above
+                                 #so have to input new dic
             delayed(trajectory)({'L_shell': 2, 'pitch_angle': 90, 'mass': 
                     mass[a], 'charge': charge[a], 'Kinetic_energy': 
                     Kinetic_energy[b], 'species': species[a], 'latitude': 0, 
                     'longitude': 0, 'phase': 0,'method': 'boris', 'accuracy':
                     1e3, 'sampling': 36, 'loss_cone': False, 'show_timing': 
-                    False})
+                    False},save = True,plot = True)
             for a in range(len(mass))
             for b in range(len(Kinetic_energy))
             for c in range(len(pitch_angle))
