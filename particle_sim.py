@@ -111,7 +111,7 @@ def particle_sim(parameters = constants.parameters):
 
 import output
 
-def trajectory(parameters,type = 'test',plot = False,save = False):
+def trajectory(parameters,traj_type = 'test',plot = False,save = False):
     
     startTime = datetime.now()    
     if type in ['test','method','trajectory']:

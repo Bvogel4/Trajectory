@@ -118,7 +118,7 @@ def plot(parameters,t=None, x=None, y=None, z=None, vx=None,vy=None, vz=None, un
     length = len(t)
     if length > 10000:
 
-        N = int(length/100000)
+        N = int(length/10000)
 
         t, x, y, z, vx, vy, vz, = t[::N], x[::N], y[::N], \
             z[::N], vx[::N], vy[::N], vz[::N]
