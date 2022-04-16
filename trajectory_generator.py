@@ -21,8 +21,8 @@ def trajectory_generator(par=True):
     if par is False:
         for a in range(len(mass)):
             for b in range(len(Kinetic_energy)):
-                for c in range(len(pitch_angle)):
-                    for d in range(len(L_shell)):
+                for d in range(len(L_shell)):
+                    for c in range(len(pitch_angle)):
                         parameters.update({'L_shell': L_shell[d], 'pitch_angle':
                             pitch_angle[c], 'Kinetic_energy': Kinetic_energy[b],
                             'mass': mass[a], 'charge': charge[a],

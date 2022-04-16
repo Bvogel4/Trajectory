@@ -1,6 +1,7 @@
 import os
 import numpy as np
 from matplotlib import pyplot as plt
+from vpython import *
 
 import constants
 from vtk_export import vtk_export
@@ -14,7 +15,7 @@ def save(parameters,t, x, y, z, vx, vy, vz):
 
     species_name = parameters['species']
     
-    if parameters['species']  != ('electron' or 'proton'):
+    if not (parameters['species']   in ('electron' , 'proton')):
         qm_rat = parameters['charge']/parameters['mass']
         species_name = 'qm_{:,}'.format(qm_rat)
     kename = parameters['Kinetic_energy']*1e-3
@@ -105,7 +106,7 @@ def plot(parameters,t=None, x=None, y=None, z=None, vx=None,vy=None, vz=None, un
     if t is None:
         if os.path.exists(out_dir):
             t, x, y, z, vx, vy, vz = np.loadtxt(
-                out_dir+'trajectory.txt', unpack=True)
+                out_dir+'trajectory.csv', unpack=True)
         elif not os.path.exists(out_dir):
             print('no such value was computed or saved')
 
@@ -124,7 +125,7 @@ def plot(parameters,t=None, x=None, y=None, z=None, vx=None,vy=None, vz=None, un
             z[::N], vx[::N], vy[::N], vz[::N]
 
     #error in energy
-    Ke = .5 * parameters['mass'] * vx**2+vy**2+vz**2
+    Ke = .5 * parameters['mass'] * np.sqrt(vx**2+vy**2+vz**2)
     Ke0 = Ke[0]
     err_E = abs((Ke0-Ke)/Ke0)
 
@@ -213,3 +214,62 @@ def plot(parameters,t=None, x=None, y=None, z=None, vx=None,vy=None, vz=None, un
     fig.savefig(out_dir + 'xy.svg', format='svg')
     # ax.show()
     plt.close()
+    
+    
+    
+def animation(parameters,t=None, x=None, y=None, z=None, vx=None,vy=None, vz=None, units='s'):
+    # valid choices for units are 's' 'Tc' 'min' 'days
+    # x = None passes nothing if compute was not run,
+    # and pull from save if exists
+    # but if a save exists, new compute get's priority for plot
+
+    if not os.path.exists('output'):
+        os.mkdir('output')
+
+    species_name = parameters['species']
+    
+    
+    
+    
+    
+    
+    if not (parameters['species']   in ('electron' , 'proton')):
+        qm_rat = parameters['charge']/parameters['mass']
+        species_name = 'qm_{:,}'.format(qm_rat)
+        
+        
+        
+    kename = parameters['Kinetic_energy']*1e-3
+
+    out_dir = 'output/{}_Ke_{}MeV_pitch_{}d_L_{}Re_{}/'\
+        .format(species_name, kename, parameters['pitch_angle'], 
+                parameters['L_shell'], parameters['method'])
+        
+        
+    title = '''pitch = {}\N{DEGREE SIGN} q/m = {}, L = {},
+        Ke = {:.1e}eV, Method = {}''' \
+        .format(parameters['pitch_angle'], parameters['species'],
+                parameters['L_shell'], parameters['Kinetic_energy'],
+                parameters['method'])
+
+    if t is None:
+        if os.path.exists(out_dir):
+            t, x, y, z, vx, vy, vz = np.loadtxt(
+                out_dir+'trajectory.csv', unpack=True)
+        elif not os.path.exists(out_dir):
+            print('no such value was computed or saved')
+
+    elif t is not None:
+        # need to check if folder exists or not
+        if not os.path.exists(out_dir):
+            os.mkdir(out_dir)
+            
+            
+    canvas(width = 1920,height = 1080)
+    earth = sphere(radius = 1,color = color.blue,pos = vector(0,0,0))
+    particle = sphere(radius = .01,color = color.red,make_trail = True,
+                      interval = 1,retain = 5000,pos = vector(y[0],z[0],x[0]))
+    
+    for i in range(int( len(t) /100) ):
+        rate(50)
+        particle.pos = vector(y[100*i],z[100*i],x[100*i])

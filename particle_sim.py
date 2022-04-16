@@ -111,27 +111,33 @@ def particle_sim(parameters = constants.parameters):
 
 import output
 
-def trajectory(parameters,traj_type = 'test',plot = False,save = False):
+def trajectory(parameters,traj_type = 'test',compute = True,plot = False,
+               save = False,animation = False,
+               t=None, x=None, y=None, z=None, vx=None,vy=None, vz=None):
     
     startTime = datetime.now()    
-    if type in ['test','method','trajectory']:
-        #calculate estimated drift period       
-        parameters.update({'time':1.1*trsfrm.t_d(parameters)})
-    elif type == 'bounce':
+    if traj_type in ['test','method','trajectory','drift']:
+        #calculate estimated drift period   
+        time = 1.1*trsfrm.t_d(parameters)
+        parameters.update({'time':time})
+
+    elif traj_type == 'bounce':
         #calculate estimated bounce period 
-        parameters.update({'time':20*trsfrm.t_b(parameters)})
-    
-    T, x, y, z, vx, vy, vz = particle_sim(parameters)
+        parameters.update({'time':40*trsfrm.t_b(parameters)})
+    if compute:
+        t, x, y, z, vx, vy, vz = particle_sim(parameters)
     
     if save:
-        output.save(parameters,T, x, y, z, vx, vy, vz)
+        output.save(parameters,t, x, y, z, vx, vy, vz)
     if output:
-        output.plot(parameters,T, x, y, z, vx, vy, vz)
+        output.plot(parameters,t, x, y, z, vx, vy, vz)
+    if animation:
+        output.animation(parameters,t, x, y, z, vx, vy, vz)
         
-    if type == 'test':
-        return y[-1], T[-1]
+    if traj_type == 'test':
+        return y[-1], t[-1]
     
-    elif type == 'method':
+    elif traj_type == 'method':
         compute_time = timedelta.total_seconds(datetime.now() - startTime)
         Ke0 = np.sqrt( vx[0]**2 + vy[0]**2 + vz[0]**2)
         Kef = np.sqrt( vx[-1]**2 + vy[-1]**2 + vz[-1]**2)

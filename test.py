@@ -13,7 +13,7 @@ test_values = np.zeros((2, 2))
 
 for a in range(2):
     parameters['charge'] = constants.C_e * (-1)**(a)
-    test_values[a] = trajectory(parameters)
+    test_values[a] = trajectory(parameters,traj_type='test',plot = True)
 
 test_values_i = np.loadtxt('test.txt')
 
