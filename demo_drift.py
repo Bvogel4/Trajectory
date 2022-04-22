@@ -1,20 +1,15 @@
 import numpy as np
-from joblib import Parallel
-from joblib import delayed
 from datetime import datetime
 
 import constants
 import transformations as trsfrm
 from particle_sim import particle_sim
-from output import save, plot
+from output import plot
 
 
 startTime = datetime.now()
 
-#t, xline, yline, zline, Vx, Vy, Vz = None, None, None, None, None, None, None
-
-#do a drift and bounce
-
+# Compute a drift and bounce
 
 def demo(mass, charge):
 

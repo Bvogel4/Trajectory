@@ -8,9 +8,9 @@ import constants
 
 
 
-def particle_sim(parameters = constants.parameters):
-    
-    
+def particle_sim(parameters=constants.parameters):
+
+
     if parameters['show_timing']:
         startTime = datetime.now()
 
@@ -114,19 +114,19 @@ import output
 def trajectory(parameters,traj_type = 'test',compute = True,plot = False,
                save = False,animation = False,
                t=None, x=None, y=None, z=None, vx=None,vy=None, vz=None):
-    
-    startTime = datetime.now()    
+
+    startTime = datetime.now()
     if traj_type in ['test','method','trajectory','drift']:
-        #calculate estimated drift period   
+        # Calculate estimated drift period
         time = 1.1*trsfrm.t_d(parameters)
-        parameters.update({'time':time})
+        parameters.update({'time': time})
 
     elif traj_type == 'bounce':
-        #calculate estimated bounce period 
-        parameters.update({'time':40*trsfrm.t_b(parameters)})
+        # Calculate estimated bounce period
+        parameters.update({'time': 40*trsfrm.t_b(parameters)})
     if compute:
         t, x, y, z, vx, vy, vz = particle_sim(parameters)
-    
+
     if save:
         output.save(parameters,t, x, y, z, vx, vy, vz)
     if output:
@@ -136,7 +136,7 @@ def trajectory(parameters,traj_type = 'test',compute = True,plot = False,
         
     if traj_type == 'test':
         return y[-1], t[-1]
-    
+
     elif traj_type == 'method':
         compute_time = timedelta.total_seconds(datetime.now() - startTime)
         Ke0 = np.sqrt( vx[0]**2 + vy[0]**2 + vz[0]**2)

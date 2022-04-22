@@ -1,11 +1,9 @@
 import os
 import numpy as np
 from matplotlib import pyplot as plt
-from vpython import *
 
 import constants
 from vtk_export import vtk_export
-import transformations as trsfrm
 
 
 def save(parameters,t, x, y, z, vx, vy, vz):
@@ -214,10 +212,10 @@ def plot(parameters,t=None, x=None, y=None, z=None, vx=None,vy=None, vz=None, un
     fig.savefig(out_dir + 'xy.svg', format='svg')
     # ax.show()
     plt.close()
-    
-    
-    
+
+
 def animation(parameters,t=None, x=None, y=None, z=None, vx=None,vy=None, vz=None, units='s'):
+
     # valid choices for units are 's' 'Tc' 'min' 'days
     # x = None passes nothing if compute was not run,
     # and pull from save if exists
@@ -227,18 +225,11 @@ def animation(parameters,t=None, x=None, y=None, z=None, vx=None,vy=None, vz=Non
         os.mkdir('output')
 
     species_name = parameters['species']
-    
-    
-    
-    
-    
-    
+
     if not (parameters['species']   in ('electron' , 'proton')):
         qm_rat = parameters['charge']/parameters['mass']
         species_name = 'qm_{:,}'.format(qm_rat)
-        
-        
-        
+
     kename = parameters['Kinetic_energy']*1e-3
 
     out_dir = 'output/{}_Ke_{}MeV_pitch_{}d_L_{}Re_{}/'\

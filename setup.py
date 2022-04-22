@@ -6,7 +6,8 @@ install_requires = [
                         "joblib",
                         "matplotlib",
                         "psutil",
-                        "scipy"
+                        "scipy",
+                        "vpython"
                     ]
 
 setup(

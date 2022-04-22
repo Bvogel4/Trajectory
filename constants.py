@@ -28,14 +28,24 @@ Bc = u0*M/(4*np.pi*Re**3)
 # Dimensionless magnetic field at the top of the atmosphere (altitude = 100 km)
 za = (Re + 1e5)/Re
 
-
-
-#default parameters
-parameters = {'L_shell':2,'pitch_angle' : 90,'mass' : M_p, 
-              'charge' : -C_e,'Kinetic_energy':1e8,'time':1,
-              'species': 'proton','latitude':0,'longitude':0,'phase':0,
-              'method' :'boris', 'accuracy' : 1e3,'sampling':36,
-              'loss_cone':False,'show_timing':False}
+# Default parameters
+parameters = {
+                'L_shell': 2,
+              'pitch_angle' : 90,
+              'mass': M_p, 
+              'charge': -C_e,
+              'Kinetic_energy': 1e8,
+              'time': 1,
+              'species': 'proton',
+              'latitude': 0,
+              'longitude': 0,
+              'phase': 0,
+              'method':'boris',
+              'accuracy': 1e3,
+              'sampling': 36,
+              'loss_cone': False,
+              'show_timing': True
+              }
 
 '''
 L_shell=2,
