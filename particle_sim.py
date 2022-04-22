@@ -1,3 +1,4 @@
+import output
 import numpy as np
 from datetime import datetime
 from datetime import timedelta
@@ -7,10 +8,8 @@ import integrator
 import constants
 
 
+def particle_sim(parameters=constants.parameters):
 
-def particle_sim(parameters = constants.parameters):
-    
-    
     if parameters['show_timing']:
         startTime = datetime.now()
 
@@ -19,14 +18,14 @@ def particle_sim(parameters = constants.parameters):
     # method,accuracy,sampling,losscone,show_timing = parameters['method'],\
     #     parameters['accuracy'],parameters['sampling'],\
     #     parameters['loss_cone'],parameters['show_timing']
-    
-    L_shell,mass,charge,t,species = parameters['L_shell'],parameters['mass'],\
-        parameters['charge'],parameters['time'],parameters['species']
-    
+
+    L_shell, mass, charge, t = parameters['L_shell'], parameters['mass'],\
+        parameters['charge'], parameters['time']
+
     # sampling modification
-    sampling,accuracy = parameters['sampling'],parameters['accuracy']
-    sampling /=  (np.pi*2) * L_shell**3
-    accuracy/=  L_shell**3
+    sampling, accuracy = parameters['sampling'], parameters['accuracy']
+    sampling /= (np.pi*2) * L_shell**3
+    accuracy /= L_shell**3
 
     # internally all angles are in radians
     # latitude = np.radians(latitude)
@@ -68,7 +67,7 @@ def particle_sim(parameters = constants.parameters):
 
     # compute dimensionless time
     tp = t/tc
-    
+
     # check loss cone angle and exit if angle is in loss cone
     Ba = np.linalg.norm(trsfrm.B(0, 0, constants.za))
     if parameters['loss_cone'] is True:
@@ -79,10 +78,11 @@ def particle_sim(parameters = constants.parameters):
             return
 
         alphac = np.arcsin(term)
-        if parameters['pitch'] < alphac:
+        if parameters['pitch_angle'] < alphac:
             print('particle will hit the atmosphere, skipping')
             return
-
+    if parameters['show_timing']:
+        print('starting integration')
     # Integrate
     if parameters['method'] == 'rk45':
         x, y, z, vx, vy, vz, T = integrator.rk45_nd(dT, tp, S0, qsign)
@@ -109,38 +109,38 @@ def particle_sim(parameters = constants.parameters):
 
     return t, x, y, z, vx, vy, vz
 
-import output
 
-def trajectory(parameters,traj_type = 'test',compute = True,plot = False,
-               save = False,animation = False,
+def trajectory(parameters, traj_type='test', compute=True, plot=False,
+               save=False, animation=False,
                t=None, x=None, y=None, z=None, vx=None,vy=None, vz=None):
-    
-    startTime = datetime.now()    
-    if traj_type in ['test','method','trajectory','drift']:
-        #calculate estimated drift period   
+
+    startTime = datetime.now()
+    if traj_type in ['test', 'method', 'trajectory', 'drift']:
+        #calculate estimated drift period
         time = 1.1*trsfrm.t_d(parameters)
-        parameters.update({'time':time})
+        parameters.update({'time': time})
 
     elif traj_type == 'bounce':
-        #calculate estimated bounce period 
-        parameters.update({'time':40*trsfrm.t_b(parameters)})
+        #calculate estimated bounce period
+        parameters.update({'time': 5*trsfrm.t_b(parameters)})
     if compute:
         t, x, y, z, vx, vy, vz = particle_sim(parameters)
-    
+
     if save:
-        output.save(parameters,t, x, y, z, vx, vy, vz)
+        assert compute, 'save is only allowed when running a new simulation'
+        output.save(parameters, t, x, y, z, vx, vy, vz)
     if output:
-        output.plot(parameters,t, x, y, z, vx, vy, vz)
+        output.plot(parameters, t, x, y, z, vx, vy, vz)
     if animation:
-        output.animation(parameters,t, x, y, z, vx, vy, vz)
-        
+        output.animation(parameters, t, x, y, z, vx, vy, vz)
+
     if traj_type == 'test':
         return y[-1], t[-1]
-    
+
     elif traj_type == 'method':
         compute_time = timedelta.total_seconds(datetime.now() - startTime)
-        Ke0 = np.sqrt( vx[0]**2 + vy[0]**2 + vz[0]**2)
-        Kef = np.sqrt( vx[-1]**2 + vy[-1]**2 + vz[-1]**2)
+        Ke0 = np.sqrt(vx[0]**2 + vy[0]**2 + vz[0]**2)
+        Kef = np.sqrt(vx[-1]**2 + vy[-1]**2 + vz[-1]**2)
         err_E = abs((Kef-Ke0)/Ke0)
         compute_efficiency = err_E/compute_time
         print(compute_efficiency)

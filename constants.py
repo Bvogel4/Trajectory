@@ -35,7 +35,7 @@ parameters = {'L_shell':2,'pitch_angle' : 90,'mass' : M_p,
               'charge' : -C_e,'Kinetic_energy':1e8,'time':1,
               'species': 'proton','latitude':0,'longitude':0,'phase':0,
               'method' :'boris', 'accuracy' : 1e3,'sampling':36,
-              'loss_cone':False,'show_timing':False}
+              'loss_cone':True,'show_timing':False}
 
 '''
 L_shell=2,
