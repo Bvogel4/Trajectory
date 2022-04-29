@@ -5,8 +5,8 @@ parameters = constants.parameters
 parameters.update(
                     {
                         'Kinetic_energy': 3e7,
-                        'pitch_angle': 20,
-                        'L_shell': 2,
+                        'pitch_angle': 15,
+                        'L_shell': 3,
                         'accuracy':1e3
                      }
                 )

@@ -1,6 +1,7 @@
 import os
 import numpy as np
 from matplotlib import pyplot as plt
+import vpython as vp
 
 import constants
 from vtk_export import vtk_export
@@ -53,22 +54,24 @@ def save(parameters,t, x, y, z, vx, vy, vz):
 
     ftype = 'ASCII'
     connectivity = {'LINES': np.array([points.shape[0]])}
-
-    print("Saving " + out_filename)
+    if parameters['show_timing']:
+        print("Saving " + out_filename)
     vtk_export(out_filename, points,  # should points be lines?
                dataset='POLYDATA',
                connectivity=connectivity,
                title='Title',
                ftype=ftype,
                debug=False)
-    print("Saved " + out_filename)
+    if parameters['show_timing']:
+        print("Saved " + out_filename)
 
     return
 
 
-def plot(parameters,t=None, x=None, y=None, z=None, vx=None,vy=None, vz=None, units='s'):
+def plot(parameters,t=None, x=None, y=None, z=None, vx=None,vy=None, vz=None,
+         units='s'):
     # valid choices for units are 's' 'Tc' 'min' 'days
-    # x = None passes nothing if compute was not run,
+    # t,... = None passes nothing if compute was not run,
     # and pull from save if exists
     # but if a save exists, new compute get's priority for plot
 
@@ -77,11 +80,7 @@ def plot(parameters,t=None, x=None, y=None, z=None, vx=None,vy=None, vz=None, un
 
     species_name = parameters['species']
     
-    
-    
-    
-    
-    
+
     if not (parameters['species']   in ('electron' , 'proton')):
         qm_rat = parameters['charge']/parameters['mass']
         species_name = 'qm_{:,}'.format(qm_rat)
@@ -220,16 +219,26 @@ def animation(parameters,t=None, x=None, y=None, z=None, vx=None,vy=None, vz=Non
     # x = None passes nothing if compute was not run,
     # and pull from save if exists
     # but if a save exists, new compute get's priority for plot
-
+    
     if not os.path.exists('output'):
         os.mkdir('output')
 
     species_name = parameters['species']
+<<<<<<< HEAD
 
     if not (parameters['species']   in ('electron' , 'proton')):
         qm_rat = parameters['charge']/parameters['mass']
         species_name = 'qm_{:,}'.format(qm_rat)
 
+=======
+    
+    
+    if not (parameters['species']   in ('electron' , 'proton')):
+        qm_rat = parameters['charge']/parameters['mass']
+        species_name = 'qm_{:,}'.format(qm_rat)
+        
+        
+>>>>>>> 01dc781ae17e7906f13143e5294ae58b8bda9d0f
     kename = parameters['Kinetic_energy']*1e-3
 
     out_dir = 'output/{}_Ke_{}MeV_pitch_{}d_L_{}Re_{}/'\
@@ -255,12 +264,18 @@ def animation(parameters,t=None, x=None, y=None, z=None, vx=None,vy=None, vz=Non
         if not os.path.exists(out_dir):
             os.mkdir(out_dir)
             
+    #wait for load and then continue on user input
+    print('waiting for input')
+    input()
             
-    canvas(width = 1920,height = 1080)
-    earth = sphere(radius = 1,color = color.blue,pos = vector(0,0,0))
-    particle = sphere(radius = .01,color = color.red,make_trail = True,
-                      interval = 1,retain = 5000,pos = vector(y[0],z[0],x[0]))
+    scene = vp.canvas(width = 1920,height = 1080)
+    earth = vp.sphere(radius = 1,pos = vp.vector(0,0,0),
+                      texture ='world.topo.200401.3x5400x2700.png' )
+    particle = vp.sphere(radius = .01,color = vp.color.red, make_trail = True,
+                      interval = 1,retain = 5000,pos = vp.vector(y[0],z[0],x[0]))
+    vp.scene.autoscale = False
     
     for i in range(int( len(t) /100) ):
-        rate(50)
-        particle.pos = vector(y[100*i],z[100*i],x[100*i])
+        vp.rate(50)
+        particle.pos = vp.vector(y[100*i],z[100*i],x[100*i])
+        vp.scene.camera.rotate(angle=2e-3, axis=vp.vector(0,1,0))
