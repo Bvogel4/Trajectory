@@ -115,24 +115,14 @@ def trajectory(parameters, traj_type='test', compute=True, plot=False,
                t=None, x=None, y=None, z=None, vx=None,vy=None, vz=None):
 
     startTime = datetime.now()
-<<<<<<< HEAD
-    if traj_type in ['test','method','trajectory','drift']:
-        # Calculate estimated drift period
-=======
     if traj_type in ['test', 'method', 'trajectory', 'drift']:
-        #calculate estimated drift period
->>>>>>> 01dc781ae17e7906f13143e5294ae58b8bda9d0f
+        # Calculate estimated drift period
         time = 1.1*trsfrm.t_d(parameters)
         parameters.update({'time': time})
 
     elif traj_type == 'bounce':
-<<<<<<< HEAD
         # Calculate estimated bounce period
-        parameters.update({'time': 40*trsfrm.t_b(parameters)})
-=======
-        #calculate estimated bounce period
         parameters.update({'time': 5*trsfrm.t_b(parameters)})
->>>>>>> 01dc781ae17e7906f13143e5294ae58b8bda9d0f
     if compute:
         t, x, y, z, vx, vy, vz = particle_sim(parameters)
 

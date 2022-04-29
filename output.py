@@ -224,28 +224,17 @@ def animation(parameters,t=None, x=None, y=None, z=None, vx=None,vy=None, vz=Non
         os.mkdir('output')
 
     species_name = parameters['species']
-<<<<<<< HEAD
 
-    if not (parameters['species']   in ('electron' , 'proton')):
+    if not (parameters['species'] in ('electron' , 'proton')):
         qm_rat = parameters['charge']/parameters['mass']
         species_name = 'qm_{:,}'.format(qm_rat)
 
-=======
-    
-    
-    if not (parameters['species']   in ('electron' , 'proton')):
-        qm_rat = parameters['charge']/parameters['mass']
-        species_name = 'qm_{:,}'.format(qm_rat)
-        
-        
->>>>>>> 01dc781ae17e7906f13143e5294ae58b8bda9d0f
     kename = parameters['Kinetic_energy']*1e-3
 
     out_dir = 'output/{}_Ke_{}MeV_pitch_{}d_L_{}Re_{}/'\
         .format(species_name, kename, parameters['pitch_angle'], 
                 parameters['L_shell'], parameters['method'])
-        
-        
+
     title = '''pitch = {}\N{DEGREE SIGN} q/m = {}, L = {},
         Ke = {:.1e}eV, Method = {}''' \
         .format(parameters['pitch_angle'], parameters['species'],
@@ -265,8 +254,7 @@ def animation(parameters,t=None, x=None, y=None, z=None, vx=None,vy=None, vz=Non
             os.mkdir(out_dir)
             
     #wait for load and then continue on user input
-    print('waiting for input')
-    input()
+    input('Press enter to show animation')
             
     scene = vp.canvas(width = 1920,height = 1080)
     earth = vp.sphere(radius = 1,pos = vp.vector(0,0,0),
